@@ -12,7 +12,7 @@ css/style.css          all visual styling (HUD, buttons, modal, danger line)
 js/config.js            every tunable number (sizes, speeds, timers) in one place
 js/items.js              the 5 fruit tiers (radius, color, score value)
 js/utils.js              math + easing helpers (incl. the merge "pop" curve)
-js/audio.js              playDropSound / playMergeSound / playGameOverSound hooks
+js/audio.js              real Web Audio playback (drop/merge/game-over), with per-tier pitch shifting on merges
 js/physics.js            thin Matter.js wrapper (walls, bodies, collisions)
 js/particles.js          merge explosion particle bursts
 js/screenshake.js        decaying camera-shake effect
@@ -20,9 +20,14 @@ js/input.js              keyboard + mouse + touch + on-screen button input
 js/ui.js                 score/high-score DOM updates, game-over modal
 js/game.js               the actual game loop: merging, danger timer, rendering
 js/main.js               boots everything, sizes the canvas
+assets/sounds/           the three real sound files (drop, merge, game-over)
 manifest.json           PWA manifest (Android "Add to Home Screen")
 sw.js                    tiny offline cache (optional, safe to ignore)
 icons/icon.svg           app icon used by the manifest
+capacitor.config.json   Capacitor config for the native Android build (set your appId before building)
+setup-android.sh         one-shot script that wires Capacitor + icons into android/
+android-assets/          pre-generated app icons (all densities, adaptive) + Play Store listing graphics
+ANDROID_BUILD_GUIDE.md  full walkthrough: Capacitor → signed APK/AAB → Play Console checklist
 ```
 
 Why this many files and not one giant script: each one owns exactly one job
@@ -46,20 +51,34 @@ Any static file server works (`npx serve`, VS Code's "Live Server" extension, et
 
 - **Desktop:** mouse to aim, click (or Space/Enter) to drop. Arrow keys / A,D also move the dropper.
 - **Touch / Android:** drag a finger across the jar to aim, tap to drop — or use the
-  on-screen ◀ / DROP / ▶ buttons, sized for thumbs.
+  on-screen ◀ / DROP / ▶ buttons (68px+ tall hit targets, generously padded for thumbs).
 
-## Adding real sound
+The entire page locks out browser-native touch gestures (`touch-action: none`,
+`overscroll-behavior: none`) so dragging to aim never accidentally triggers
+Chrome's swipe-to-go-back or pull-to-refresh, and pinch/double-tap-zoom can't
+throw off the canvas size mid-game.
 
-`js/audio.js` currently just `console.log`s when a sound *should* play. Drop your
-files into `assets/sounds/` and replace each function body, e.g.:
+## Audio
 
-```js
-const dropClip = new Audio('assets/sounds/drop.mp3');
-export function playDropSound() {
-  dropClip.currentTime = 0;
-  dropClip.play().catch(() => {});
-}
-```
+Real sound is wired up and playing — `js/audio.js` loads three short, original,
+royalty-free files from `assets/sounds/` (`drop.ogg`, `merge.ogg`, `gameover.ogg`)
+through the Web Audio API.
+
+The merge sound uses one trick worth knowing about: it's a single base file
+whose *playback rate* is shifted per tier, rather than five separate
+recordings. Lower-tier merges play it back faster/higher (light, crisp);
+the max-tier merge plays it back slower/lower (deep, impactful). That curve
+lives in `playMergeSound()` in `js/audio.js` if you want to retune it.
+
+Browsers require a real user gesture before audio can play, so loading
+starts on the player's very first tap/click/keypress (see `onFirstInteraction`
+in `js/input.js`) — by the time they actually drop something, the files have
+almost always already finished loading.
+
+Want to swap in your own sounds instead? Just replace the three files in
+`assets/sounds/` with same-named files (any format `<audio>`/Web Audio
+supports — mp3, wav, ogg) and update the paths in `SOUND_FILES` at the top
+of `js/audio.js` if you rename them.
 
 ## Publishing to itch.io (web)
 
@@ -81,20 +100,9 @@ its own icon, just like a native app. This is the fastest way to get it on a pho
 
 **2. Native APK path — for the Play Store:**
 This needs a native build environment (Android Studio + Android SDK) that isn't available
-inside this chat, so you'll do this step on your own machine:
-
-```bash
-npm install -g @capacitor/cli
-npm init -y
-npm install @capacitor/core @capacitor/android
-npx cap init "Merge Orchard" "com.yourname.mergeorchard" --web-dir .
-npx cap add android
-npx cap copy android
-npx cap open android   # opens Android Studio — build → generate signed APK/AAB
-```
-
-Because this game has no build tooling of its own (it's plain HTML/CSS/JS), the
-`--web-dir .` points Capacitor straight at this folder — no bundler needed.
+inside this chat, so you'll do this step on your own machine. Full walkthrough — including
+pre-generated app icons, adaptive icon layers, Play Store listing graphics, signing, and a
+one-shot setup script — is in **`ANDROID_BUILD_GUIDE.md`**.
 
 ## Tuning the feel
 

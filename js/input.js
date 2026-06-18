@@ -3,16 +3,33 @@
 // Using Pointer Events for the on-screen buttons means the same code path
 // handles mouse, touch, and stylus — important for Android support.
 export class InputController {
-  constructor(canvas, { onAimToX, onDrop }) {
+  constructor(canvas, { onAimToX, onDrop, onFirstInteraction }) {
     this.canvas = canvas;
     this.onAimToX = onAimToX;
     this.onDrop = onDrop;
     this.holdLeft = false;
     this.holdRight = false;
 
+    this._bindFirstInteraction(onFirstInteraction);
     this._bindKeyboard();
     this._bindCanvasPointer();
     this._bindOnScreenButtons();
+  }
+
+  // Fires once, on whichever comes first: a touch, a click, or a keypress.
+  // Browsers only allow audio to start loading/unlocking inside a real user
+  // gesture — firing this as early as possible (rather than waiting for the
+  // first completed drop) gives the audio fetch the most possible head
+  // start before a sound is actually needed.
+  _bindFirstInteraction(callback) {
+    if (!callback) return;
+    const fire = () => {
+      callback();
+      window.removeEventListener('pointerdown', fire, true);
+      window.removeEventListener('keydown', fire, true);
+    };
+    window.addEventListener('pointerdown', fire, true);
+    window.addEventListener('keydown', fire, true);
   }
 
   _bindKeyboard() {

@@ -5,7 +5,7 @@ import { ParticleSystem } from './particles.js';
 import { ScreenShake } from './screenshake.js';
 import { UI } from './ui.js';
 import { InputController } from './input.js';
-import { playDropSound, playMergeSound, playGameOverSound } from './audio.js';
+import { playDropSound, playMergeSound, playGameOverSound, preloadAudio } from './audio.js';
 import { clamp, popScale } from './utils.js';
 
 export class Game {
@@ -20,6 +20,7 @@ export class Game {
     this.input = new InputController(canvas, {
       onAimToX: (x) => this.setDropperX(x),
       onDrop: () => this.tryDrop(),
+      onFirstInteraction: () => preloadAudio(),
     });
 
     this.popTweens = new Map();      // itemId -> spawnTimestamp
@@ -60,6 +61,7 @@ export class Game {
 
   tryDrop() {
     if (this.state !== 'playing') return;
+    preloadAudio(); // first call wins; no-op after that — always inside a user gesture here
     const now = performance.now();
     if (now < this.nextDropAllowedAt) return;
     this.nextDropAllowedAt = now + CONFIG.DROP_COOLDOWN_MS;
@@ -112,6 +114,7 @@ export class Game {
     if (tier >= MAX_TIER_INDEX) {
       // Top tier merge: no further item to spawn — big score bonus instead.
       this.score += TIERS[tier].score * 2;
+      this.ui.reportLiveScore(this.score);
       return;
     }
 
@@ -119,6 +122,7 @@ export class Game {
     const newBody = this.physics.addItem(mx, my, newTier, TIERS[newTier].radius);
     this.popTweens.set(newBody.itemId, performance.now());
     this.score += TIERS[newTier].score;
+    this.ui.reportLiveScore(this.score);
   }
 
   _updateDangerTimer(dtMs) {

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- If this file already exists in android/app/src/main/res/values/colors.xml,
+         just add this one <color> line to it instead of overwriting the file. -->
+    <color name="ic_launcher_background">#1B1530</color>
+</resources>
