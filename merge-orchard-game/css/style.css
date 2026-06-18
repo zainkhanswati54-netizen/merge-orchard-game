@@ -1,0 +1,248 @@
+:root {
+  --bg-deep: #1B1530;
+  --bg-deep-2: #241A3D;
+  --surface-cream: #FFF1E6;
+  --text-plum: #4A3F5C;
+  --text-plum-soft: #6B5C7A;
+  --accent-coral: #FF6B5B;
+  --accent-coral-dark: #E14F40;
+  --accent-gold: #FFC857;
+  --danger-red: #FF4D4D;
+
+  --font-display: 'Baloo 2', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: radial-gradient(circle at 50% -10%, var(--bg-deep-2), var(--bg-deep) 65%);
+  font-family: var(--font-body);
+  color: var(--text-plum);
+  overscroll-behavior: none;
+  user-select: none;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 12px;
+}
+
+.app {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---------- HUD ---------- */
+
+.hud {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hud-card {
+  flex: 1;
+  background: var(--surface-cream);
+  border-radius: 16px;
+  padding: 10px 16px;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+}
+
+.hud-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-plum-soft);
+  font-weight: 600;
+}
+
+.hud-value {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1.1;
+  color: var(--accent-coral-dark);
+  font-weight: 700;
+}
+
+.hud-next {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.next-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #D7263D;
+  box-shadow: inset 0 -3px 5px rgba(0,0,0,0.25), 0 2px 0 rgba(0,0,0,0.18);
+}
+
+/* ---------- Game stage ---------- */
+
+.stage {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  background: transparent;
+}
+
+.danger-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 16.4%; /* matches CONFIG.DANGER_LINE_Y / CONFIG.BOX_HEIGHT */
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--danger-red) 0 8px, transparent 8px 16px);
+  opacity: 0;
+  transition: opacity 120ms linear;
+  pointer-events: none;
+  animation: dangerPulse 700ms ease-in-out infinite;
+}
+
+@keyframes dangerPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.6); }
+}
+
+/* ---------- On-screen controls (touch / Android) ---------- */
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ctrl-btn {
+  flex: 1;
+  border: none;
+  border-radius: 16px;
+  background: var(--surface-cream);
+  color: var(--text-plum);
+  font-family: var(--font-display);
+  font-size: 22px;
+  padding: 16px 0;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+  touch-action: none;
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+
+.ctrl-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.18);
+}
+
+#btn-drop {
+  flex: 1.4;
+  background: var(--accent-coral);
+  color: #fff;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hint {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255,255,255,0.35);
+}
+
+/* ---------- Game over modal ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 10, 28, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+  padding: 20px;
+}
+
+.modal-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-card {
+  background: var(--surface-cream);
+  border-radius: 22px;
+  padding: 28px 26px;
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+  box-shadow: 0 14px 0 rgba(0,0,0,0.22);
+}
+
+.modal-card h2 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  margin: 0 0 6px;
+  color: var(--accent-coral-dark);
+}
+
+.modal-stat {
+  margin: 14px 0;
+}
+
+.modal-stat .hud-label {
+  display: block;
+}
+
+.modal-stat .hud-value {
+  font-size: 34px;
+}
+
+.badge {
+  display: inline-block;
+  margin-top: 4px;
+  background: var(--accent-gold);
+  color: #5a3d00;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+#restart-btn {
+  margin-top: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  background: var(--accent-coral);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 18px;
+  padding: 14px 0;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--accent-coral-dark);
+}
+
+#restart-btn:active {
+  transform: translateY(3px);
+  box-shadow: none;
+}
