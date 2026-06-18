@@ -1,0 +1,18 @@
+{
+  "name": "Merge Orchard",
+  "short_name": "Merge Orchard",
+  "description": "A juicy physics fruit-merging puzzle.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1B1530",
+  "theme_color": "#1B1530",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
