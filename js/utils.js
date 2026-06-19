@@ -35,3 +35,18 @@ export function popScale(t) {
   const t2 = (clamped - 0.55) / 0.45;
   return lerp(1.2, 1.0, easeOutQuad(t2));
 }
+
+// Adds a brief non-uniform "squish" on top of popScale — the fruit looks
+// momentarily squashed wide-and-short right as it spawns (like landing
+// dough), then springs back to a normal round pop. This is what makes a
+// merge feel juicy/soft rather than just "appearing."
+export function squishPopScale(t) {
+  const base = popScale(t);
+  const squishWindow = 0.45; // squish fully fades out by this point in the tween
+  const squishAmount = clamp(1 - t / squishWindow, 0, 1) * easeOutQuad(1 - t / squishWindow);
+  const widen = 0.22 * squishAmount;
+  return {
+    scaleX: base * (1 + widen),
+    scaleY: base * (1 - widen),
+  };
+}

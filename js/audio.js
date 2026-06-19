@@ -1,26 +1,32 @@
 // ---------------------------------------------------------------------------
 // AUDIO ENGINE
 // ---------------------------------------------------------------------------
-// Real Web Audio playback, with one trick worth calling out: the merge sound
-// is a single base file whose *playback rate* is shifted per tier. That's
-// what gives lower tiers a light, crisp "ding" and the max-tier merge a
-// deep, heavy "thud" — one small file instead of five separate recordings.
+// Real Web Audio playback for SFX, plus a looping background music bed, both
+// wired live to the Settings overlay's volume sliders via settings.js.
 //
-// Every call still logs to the console (as before) so you can confirm
-// exactly when each hook fires, even once real audio is playing.
+// One trick worth calling out: the merge SFX is a single base file whose
+// *playback rate* is shifted per tier — lower tiers play it back faster/
+// higher (light, crisp), the max-tier merge plays it back slower/lower
+// (deep, impactful). One small file instead of five separate recordings.
+//
+// Every hook still logs to the console, exactly as before, so you can always
+// confirm when each sound *should* fire.
 // ---------------------------------------------------------------------------
 
 import { MAX_TIER_INDEX } from './items.js';
+import { getSettings, onSettingsChange } from './settings.js';
 
 const SOUND_FILES = {
   drop: 'assets/sounds/drop.ogg',
   merge: 'assets/sounds/merge.ogg',
   gameOver: 'assets/sounds/gameover.ogg',
 };
+const MUSIC_FILE = 'assets/sounds/music_loop.ogg';
 
 let audioCtx = null;
 const buffers = {};
-let loadStarted = false;
+let loadPromise = null;
+let musicEl = null;
 
 function ensureContext() {
   if (!audioCtx) {
@@ -29,8 +35,8 @@ function ensureContext() {
     audioCtx = new AC();
   }
   // Mobile browsers suspend new AudioContexts until a user gesture resumes
-  // them — calling this from inside tryDrop() (a click/tap/keypress handler)
-  // satisfies that requirement.
+  // them — calling this from inside a click/tap/keypress handler (see
+  // onFirstInteraction in input.js) satisfies that requirement.
   if (audioCtx.state === 'suspended') {
     audioCtx.resume().catch(() => {});
   }
@@ -43,19 +49,51 @@ async function loadBuffer(ctx, key, url) {
   buffers[key] = await ctx.decodeAudioData(arrayBuffer);
 }
 
-// Call once, from a user-gesture context. Safe to call repeatedly — only
-// loads once. If the files are missing or fail to decode, the game falls
-// back to silent console logging rather than throwing.
+function ensureMusicElement() {
+  if (!musicEl) {
+    musicEl = new Audio(MUSIC_FILE);
+    musicEl.loop = true;
+    musicEl.volume = getSettings().musicVolume;
+  }
+  return musicEl;
+}
+
+// Keep the music element's volume in sync the instant the slider moves —
+// no need to wait for the next play() call like SFX gain does.
+onSettingsChange((settings) => {
+  if (musicEl) musicEl.volume = settings.musicVolume;
+});
+
+// Call once, from a user-gesture context (or as early as possible, e.g. the
+// loading screen — decoding audio doesn't require a gesture, only *playback*
+// does). Safe to call repeatedly: returns the same promise every time after
+// the first call. Resolves even on failure so callers can always `await` it
+// without a try/catch of their own.
 export function preloadAudio() {
-  if (loadStarted) return;
-  loadStarted = true;
+  if (loadPromise) return loadPromise;
   const ctx = ensureContext();
-  if (!ctx) return;
-  Promise.all(
+  if (!ctx) return Promise.resolve();
+  loadPromise = Promise.all(
     Object.entries(SOUND_FILES).map(([key, url]) => loadBuffer(ctx, key, url))
   )
     .then(() => console.log('[audio] sound files loaded'))
     .catch((err) => console.warn('[audio] could not load sound files, falling back to silent mode:', err));
+  return loadPromise;
+}
+
+// Starts the background music loop. Safe to call repeatedly — does nothing
+// if it's already playing. Must be called from a user gesture (or it will
+// silently fail to start until the next call that IS inside one).
+export function startMusic() {
+  const el = ensureMusicElement();
+  if (!el.paused) return;
+  el.play().catch(() => {
+    console.log('[audio] music start deferred — waiting for a user gesture');
+  });
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
 }
 
 function play(key, { rate = 1, gain = 1 } = {}) {
@@ -66,15 +104,11 @@ function play(key, { rate = 1, gain = 1 } = {}) {
   source.playbackRate.value = rate;
 
   const gainNode = ctx.createGain();
-  gainNode.gain.value = gain;
+  gainNode.gain.value = gain * getSettings().sfxVolume;
 
   source.connect(gainNode).connect(ctx.destination);
   source.start();
   return true;
-}
-
-function lerp(a, b, t) {
-  return a + (b - a) * t;
 }
 
 export function playDropSound() {

@@ -4,35 +4,46 @@ A tight, single-mechanic physics merging game (Suika/Watermelon-style): aim, dro
 merge matching tiers, avoid topping out the jar. Built as plain HTML5 + JS modules +
 Matter.js for physics — no build step required.
 
+A full screen flow wraps the core loop: a real loading screen, a main menu,
+a Settings overlay with working volume sliders, a local Leaderboard, glossy
+hand-illustrated fruit (not flat circles), a juicy squish-on-merge animation,
+and a proper Game Over modal that doesn't blank your score out from under you.
+
 ## Project structure
 
 ```
-index.html            page shell, HUD markup, loads Matter.js + js/main.js
-css/style.css          all visual styling (HUD, buttons, modal, danger line)
-js/config.js            every tunable number (sizes, speeds, timers) in one place
-js/items.js              the 5 fruit tiers (radius, color, score value)
-js/utils.js              math + easing helpers (incl. the merge "pop" curve)
-js/audio.js              real Web Audio playback (drop/merge/game-over), with per-tier pitch shifting on merges
-js/physics.js            thin Matter.js wrapper (walls, bodies, collisions)
-js/particles.js          merge explosion particle bursts
-js/screenshake.js        decaying camera-shake effect
-js/input.js              keyboard + mouse + touch + on-screen button input
-js/ui.js                 score/high-score DOM updates, game-over modal
-js/game.js               the actual game loop: merging, danger timer, rendering
-js/main.js               boots everything, sizes the canvas
-assets/sounds/           the three real sound files (drop, merge, game-over)
-manifest.json           PWA manifest (Android "Add to Home Screen")
-sw.js                    tiny offline cache (optional, safe to ignore)
-icons/icon.svg           app icon used by the manifest
-capacitor.config.json   Capacitor config for the native Android build (set your appId before building)
-setup-android.sh         one-shot script that wires Capacitor + icons into android/
-android-assets/          pre-generated app icons (all densities, adaptive) + Play Store listing graphics
-ANDROID_BUILD_GUIDE.md  full walkthrough: Capacitor → signed APK/AAB → Play Console checklist
+index.html               page shell — loading screen, main menu, game screen, all overlays
+css/style.css             all visual styling (every screen, HUD, overlays, danger line)
+js/config.js              every tunable number (sizes, speeds, timers) in one place
+js/items.js               the 5 fruit tiers (radius, color, score value)
+js/utils.js               math + easing helpers (incl. the merge pop/squish curves)
+js/settings.js            SFX/music volume state, persisted + reactive (live slider updates)
+js/leaderboard.js         local top-5 high scores, persisted to localStorage
+js/fruitRenderer.js       hand-drawn glossy fruit illustrations (seeds, leaves, rind, gloss)
+js/audio.js               Web Audio SFX + looping music bed, both wired to Settings volume
+js/physics.js             thin Matter.js wrapper (walls, bodies, collisions)
+js/particles.js           merge explosion particle bursts
+js/screenshake.js         decaying camera-shake effect (scales with merge tier)
+js/input.js               keyboard + mouse + touch + on-screen button input
+js/ui.js                  in-game HUD updates, Game Over modal, live high-score saving
+js/screens.js             loading sequence, menu nav, Settings/Leaderboard overlay wiring
+js/game.js                the actual game loop: merging, danger timer, pause, rendering
+js/main.js                boots everything, owns the Game instance, drives the loading screen
+assets/sounds/            real sound files: drop, merge, game-over, and a looping music bed
+manifest.json            PWA manifest (Android "Add to Home Screen")
+sw.js                     tiny offline cache (optional, safe to ignore)
+icons/icon.svg            app icon used by the manifest
+capacitor.config.json    Capacitor config for the native Android build (set your appId before building)
+setup-android.sh          one-shot script that wires Capacitor + icons into android/
+android-assets/           pre-generated app icons (all densities, adaptive) + Play Store listing graphics
+ANDROID_BUILD_GUIDE.md   full walkthrough: Capacitor → signed APK/AAB → Play Console checklist
 ```
 
 Why this many files and not one giant script: each one owns exactly one job
-(physics, particles, shake, audio, UI, input), so the merge loop itself — the only
-mechanic this game has — stays easy to tune without wading through unrelated code.
+(physics, particles, shake, audio, settings, leaderboard, screen flow, fruit
+art), so any one concern — say, retuning the squish effect or adding a new
+menu option — stays a small, isolated change instead of a hunt through
+unrelated code.
 
 ## Running it locally
 
@@ -58,11 +69,59 @@ The entire page locks out browser-native touch gestures (`touch-action: none`,
 Chrome's swipe-to-go-back or pull-to-refresh, and pinch/double-tap-zoom can't
 throw off the canvas size mid-game.
 
+## Screen flow
+
+`js/screens.js` + `js/main.js` own navigation between four states:
+
+1. **Loading screen** — a real progress bar driven by actual steps (waiting
+   for fonts, decoding the audio files), not a fake timer, with a small
+   minimum-display floor (`CONFIG.MIN_LOADING_SCREEN_MS`) so it still reads
+   as a loading screen even on a fast connection.
+2. **Main menu** — Play / Settings / Leaderboard.
+3. **Game screen** — created lazily on the first "Play" press (no point
+   ticking physics behind the menu). Pressing Play again just restarts the
+   same instance in place.
+4. **Settings** and **Leaderboard** are overlays, not separate screens —
+   they can open on top of the menu *or* on top of the game (via the ⚙ icon
+   in the in-game HUD), and opening Settings mid-game calls `game.pause()`
+   so physics/timers genuinely freeze rather than continuing invisibly
+   behind the overlay.
+
+## Fruit art & juice
+
+`js/fruitRenderer.js` draws each tier as actual illustrated fruit — seeds on
+the strawberry, rind stripes on the watermelon, a two-tone gradient on the
+apple, leafy crowns and stems — rather than a flat gradient circle, using
+layered canvas gradients for a glossy highlight on every fruit.
+
+The merge "juice" is two effects stacked together (see `squishPopScale` in
+`js/utils.js`): the fruit scales up from 0 → 1.2 → 1.0 as before, *plus* a
+brief non-uniform squash (wide and short) in the first fraction of that
+tween that springs back to round — what actually reads as "juicy" rather
+than just "appearing." Screen shake also scales with the merging tier, so a
+cherry-merge is a light tap and a watermelon-merge properly shakes the
+screen.
+
+## Game Over behavior
+
+The HUD score is **not** reset to 0 the instant a fruit overflows the danger
+line for 2 seconds. The Game Over modal appears over the frozen board
+showing `FINAL SCORE` and `PERSONAL BEST` (with a badge if you just beat
+it), and only "Play Again" actually clears the board and zeroes the score.
+The run is also recorded into the local Leaderboard (`js/leaderboard.js`,
+top 5 scores) right when the modal appears.
+
 ## Audio
 
-Real sound is wired up and playing — `js/audio.js` loads three short, original,
-royalty-free files from `assets/sounds/` (`drop.ogg`, `merge.ogg`, `gameover.ogg`)
-through the Web Audio API.
+Real sound is wired up and playing — `js/audio.js` loads four short, original,
+royalty-free files from `assets/sounds/`: three SFX (`drop.ogg`, `merge.ogg`,
+`gameover.ogg`) through the Web Audio API, plus a seamlessly-looping ambient
+music bed (`music_loop.ogg`) played through a standard `<audio>` element.
+
+Both SFX and music volume are live-wired to the Settings overlay's sliders
+via `js/settings.js` — dragging a slider updates `localStorage` immediately
+and takes effect on the very next sound (SFX) or instantly (music, since its
+`<audio>` element's `.volume` is updated the moment the slider moves).
 
 The merge sound uses one trick worth knowing about: it's a single base file
 whose *playback rate* is shifted per tier, rather than five separate
@@ -70,15 +129,16 @@ recordings. Lower-tier merges play it back faster/higher (light, crisp);
 the max-tier merge plays it back slower/lower (deep, impactful). That curve
 lives in `playMergeSound()` in `js/audio.js` if you want to retune it.
 
-Browsers require a real user gesture before audio can play, so loading
-starts on the player's very first tap/click/keypress (see `onFirstInteraction`
-in `js/input.js`) — by the time they actually drop something, the files have
-almost always already finished loading.
+Browsers require a real user gesture before audio can play, so loading and
+music start are both tied to the player's very first tap/click/keypress
+anywhere in the game (see `onFirstInteraction` in `js/input.js`) — by the
+time they actually drop something, the files have almost always already
+finished loading.
 
-Want to swap in your own sounds instead? Just replace the three files in
+Want to swap in your own sounds instead? Just replace the files in
 `assets/sounds/` with same-named files (any format `<audio>`/Web Audio
-supports — mp3, wav, ogg) and update the paths in `SOUND_FILES` at the top
-of `js/audio.js` if you rename them.
+supports — mp3, wav, ogg) and update the paths in `SOUND_FILES`/`MUSIC_FILE`
+at the top of `js/audio.js` if you rename them.
 
 ## Publishing to itch.io (web)
 
@@ -107,5 +167,7 @@ one-shot setup script — is in **`ANDROID_BUILD_GUIDE.md`**.
 ## Tuning the feel
 
 Almost everything worth tweaking lives in `js/config.js`: drop cooldown, danger-line
-position and grace period, screen-shake strength, gravity/bounciness, and the pop-tween
-duration. Fruit colors, sizes, and scores live in `js/items.js`.
+position and timing (2 seconds by default), screen-shake strength, gravity/bounciness,
+and the pop/squish tween duration. Fruit colors, sizes, and scores live in
+`js/items.js`; the actual illustrations (seeds, stripes, leaves, gloss) live in
+`js/fruitRenderer.js`. Default volume levels live in `js/settings.js`.

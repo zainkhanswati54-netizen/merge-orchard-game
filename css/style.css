@@ -39,22 +39,179 @@ body {
   justify-content: center;
   min-height: 100vh;
   padding: 12px;
+  overflow: hidden;
 }
 
-.app {
+/* =====================================================================
+   SCREENS — loading / main menu / game. Exactly one is ever visible;
+   screens.js toggles the "visible" class.
+   ===================================================================== */
+
+.screen {
+  display: none;
   width: 100%;
   max-width: 420px;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.screen.visible {
+  display: flex;
+}
+
+/* ---------- shared brand block (loading screen + main menu) ---------- */
+
+.brand-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.brand-icon {
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,0.35));
+  animation: brandFloat 3.2s ease-in-out infinite;
+}
+
+@keyframes brandFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.brand-title {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--surface-cream);
+  margin: 4px 0 0;
+  letter-spacing: 0.01em;
+}
+
+.brand-tagline {
+  font-size: 13px;
+  color: rgba(255,255,255,0.55);
+  margin: 0;
+}
+
+/* ---------- loading screen ---------- */
+
+#loading-screen {
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.loading-bar-track {
+  width: 100%;
+  max-width: 280px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.1);
+  overflow: hidden;
+}
+
+.loading-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-coral), var(--accent-gold));
+  transition: width 220ms ease-out;
+}
+
+.loading-meta {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 280px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+}
+
+/* ---------- main menu ---------- */
+
+#main-menu {
+  justify-content: center;
+  min-height: 70vh;
+}
+
+.menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 10px;
+}
+
+.menu-btn {
+  border: none;
+  border-radius: 16px;
+  background: var(--surface-cream);
+  color: var(--text-plum);
+  font-family: var(--font-display);
+  font-size: 18px;
+  padding: 16px 0;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+  cursor: pointer;
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+
+.menu-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.18);
+}
+
+.menu-btn-primary {
+  background: var(--accent-coral);
+  color: #fff;
+  font-size: 20px;
+  box-shadow: 0 5px 0 var(--accent-coral-dark);
+}
+
+.menu-footer {
+  font-size: 12px;
+  color: rgba(255,255,255,0.35);
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* =====================================================================
+   GAME SCREEN — side-panel HUD next to the jar on roomy screens,
+   stacked above it on narrow mobile screens (the common case).
+   ===================================================================== */
+
+#game-screen {
+  max-width: 760px;
+}
+
+.app-layout {
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-/* ---------- HUD ---------- */
-
-.hud {
+.hud-panel {
   display: flex;
-  justify-content: space-between;
+  flex-direction: row;
   gap: 10px;
+  position: relative;
+}
+
+.hud-icon-btn {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.12);
+  color: var(--surface-cream);
+  font-size: 15px;
+  cursor: pointer;
+  z-index: 2;
 }
 
 .hud-card {
@@ -83,9 +240,11 @@ body {
 
 .hud-next {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
   flex: 0 0 auto;
+  gap: 2px;
 }
 
 .next-swatch {
@@ -102,8 +261,33 @@ body {
   font-weight: 600;
   color: var(--text-plum-soft);
   text-align: center;
-  margin-top: 4px;
   white-space: nowrap;
+}
+
+.play-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+/* Roomier screens (tablet/desktop testing in a browser window): HUD
+   becomes a true side panel running down the left of the jar. */
+@media (min-width: 640px) {
+  .app-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .hud-panel {
+    flex-direction: column;
+    width: 150px;
+    flex: 0 0 150px;
+  }
+  .hud-next {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 10px;
+  }
 }
 
 /* ---------- Game stage ---------- */
@@ -130,7 +314,7 @@ body {
   top: 16.4%; /* matches CONFIG.DANGER_LINE_Y / CONFIG.BOX_HEIGHT */
   height: 2px;
   background: repeating-linear-gradient(90deg, var(--danger-red) 0 8px, transparent 8px 16px);
-  opacity: 0;
+  opacity: 0.32; /* always faintly visible, even when not in danger, so players know where it is */
   transition: opacity 120ms linear;
   pointer-events: none;
   animation: dangerPulse 700ms ease-in-out infinite;
@@ -187,7 +371,9 @@ body {
   color: rgba(255,255,255,0.35);
 }
 
-/* ---------- Game over modal ---------- */
+/* =====================================================================
+   MODALS — Game Over, Settings, Leaderboard all share this card look.
+   ===================================================================== */
 
 .modal-overlay {
   position: fixed;
@@ -200,6 +386,7 @@ body {
   pointer-events: none;
   transition: opacity 200ms ease;
   padding: 20px;
+  z-index: 10;
 }
 
 .modal-overlay.visible {
@@ -215,6 +402,13 @@ body {
   max-width: 320px;
   text-align: center;
   box-shadow: 0 14px 0 rgba(0,0,0,0.22);
+  /* a quick pop-in when the modal appears, instead of just fading */
+  transform: scale(0.9);
+  animation: modalPopIn 240ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes modalPopIn {
+  to { transform: scale(1); }
 }
 
 .modal-card h2 {
@@ -249,8 +443,10 @@ body {
   border-radius: 999px;
 }
 
-#restart-btn {
-  margin-top: 12px;
+/* Shared "primary action" button used by Play Again / Done / Close —
+   includes a slow idle pulse so it reads as alive, not static. */
+.modal-primary-btn {
+  margin-top: 16px;
   width: 100%;
   border: none;
   border-radius: 14px;
@@ -261,9 +457,89 @@ body {
   padding: 14px 0;
   cursor: pointer;
   box-shadow: 0 4px 0 var(--accent-coral-dark);
+  animation: ctaPulse 2.2s ease-in-out infinite;
 }
 
-#restart-btn:active {
+.modal-primary-btn:active {
   transform: translateY(3px);
   box-shadow: none;
+  animation: none;
+}
+
+@keyframes ctaPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}
+
+/* ---------- Settings overlay ---------- */
+
+.slider-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 16px 0;
+  text-align: left;
+}
+
+.slider-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-plum-soft);
+}
+
+.volume-slider {
+  width: 100%;
+  height: 28px; /* generous touch target for the thumb on mobile */
+  accent-color: var(--accent-coral);
+}
+
+/* ---------- Leaderboard overlay ---------- */
+
+.leaderboard-subtitle {
+  font-size: 12px;
+  color: var(--text-plum-soft);
+  margin: 0 0 12px;
+}
+
+.leaderboard-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.leaderboard-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0,0,0,0.04);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-family: var(--font-display);
+}
+
+.leaderboard-row.is-top {
+  background: var(--accent-gold);
+}
+
+.lb-rank {
+  font-size: 13px;
+  color: var(--text-plum-soft);
+}
+
+.lb-score {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-coral-dark);
+}
+
+.leaderboard-empty {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-plum-soft);
+  padding: 16px 0;
 }

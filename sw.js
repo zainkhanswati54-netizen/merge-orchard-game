@@ -1,7 +1,7 @@
 // Minimal "app shell" cache. Not required for the game to work, but lets it
 // keep running if a player loses signal after the first load (handy for a
 // quick mobile play session).
-const CACHE_NAME = 'merge-orchard-v1';
+const CACHE_NAME = 'merge-orchard-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -17,6 +17,14 @@ const ASSETS = [
   './js/input.js',
   './js/audio.js',
   './js/utils.js',
+  './js/settings.js',
+  './js/leaderboard.js',
+  './js/fruitRenderer.js',
+  './js/screens.js',
+  './assets/sounds/drop.ogg',
+  './assets/sounds/merge.ogg',
+  './assets/sounds/gameover.ogg',
+  './assets/sounds/music_loop.ogg',
   './manifest.json',
   './icons/icon.svg',
 ];
