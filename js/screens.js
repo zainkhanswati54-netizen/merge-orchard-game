@@ -1,20 +1,24 @@
 // ---------------------------------------------------------------------------
 // SCREEN FLOW
 // ---------------------------------------------------------------------------
-// Owns navigation between the loading screen, main menu, and game screen,
-// plus the Settings and Leaderboard overlays that can appear on top of
-// either. Deliberately separate from game.js (which only cares about the
-// merge loop itself) and ui.js (which only cares about the in-game HUD).
+// Owns navigation between the loading screen, main menu, level select, and
+// game screen, plus the Settings and Leaderboard overlays that can appear on
+// top of any of them. Deliberately separate from game.js (which only cares
+// about the merge loop itself) and ui.js (which only cares about the
+// in-game HUD).
 // ---------------------------------------------------------------------------
 
 import { CONFIG } from './config.js';
 import { getSettings, setSetting } from './settings.js';
 import { getLeaderboard } from './leaderboard.js';
 import { preloadAudio } from './audio.js';
+import { THEMES, isThemeUnlocked } from './themes.js';
+import { getTotalXP } from './xp.js';
 
 const SCREEN_ELEMENT_ID = {
   loading: 'loading-screen',
   menu: 'main-menu',
+  levelSelect: 'level-select-screen',
   game: 'game-screen',
 };
 
@@ -55,14 +59,62 @@ function renderLeaderboard() {
     .join('');
 }
 
-// Wires every button/slider across the menu, both overlays, and the in-game
-// HUD's settings icon. onPlay/onPauseGame/onResumeGame are small hooks back
-// into main.js, which is the only place that knows whether a Game instance
-// exists yet.
-export function initScreens({ onPlay, onPauseGame, onResumeGame } = {}) {
+// Builds one card per theme/orchard, locked or unlocked based on cumulative
+// XP. Unlocked cards are clickable and hand the theme id back via onSelect;
+// locked cards show what's needed and do nothing on click (a brief shake
+// gives feedback instead of just silently ignoring the tap).
+function renderLevelSelect(onSelect) {
+  const listEl = document.getElementById('level-select-list');
+  if (!listEl) return;
+  const totalXP = getTotalXP();
+
+  listEl.innerHTML = '';
+  for (const theme of THEMES) {
+    const unlocked = isThemeUnlocked(theme, totalXP);
+    const card = document.createElement('button');
+    card.className = `level-card${unlocked ? '' : ' is-locked'}`;
+    card.type = 'button';
+
+    const fruitDots = theme.tiers
+      .slice(0, 4)
+      .map((t) => `<span class="level-card-dot" style="background:${t.color}"></span>`)
+      .join('');
+
+    card.innerHTML = `
+      <div class="level-card-main">
+        <div class="level-card-name">${unlocked ? '' : '🔒 '}${theme.name}</div>
+        <div class="level-card-desc">${theme.description}</div>
+        <div class="level-card-dots">${fruitDots}</div>
+      </div>
+      ${unlocked ? '' : `<div class="level-card-lock-label">Unlocks at ${theme.unlockXP} XP</div>`}
+    `;
+
+    if (unlocked) {
+      card.addEventListener('click', () => onSelect(theme.id));
+    } else {
+      card.addEventListener('click', () => {
+        card.classList.remove('shake');
+        void card.offsetWidth; // restart the animation on repeated taps
+        card.classList.add('shake');
+      });
+    }
+
+    listEl.appendChild(card);
+  }
+}
+
+// Wires every button/slider across the menu, level select, both overlays,
+// and the in-game HUD's settings icon. The on* hooks are small callbacks
+// back into main.js, which is the only place that knows whether a Game
+// instance exists yet.
+export function initScreens({ onSelectLevel, onPauseGame, onResumeGame } = {}) {
   document.getElementById('menu-play-btn')?.addEventListener('click', () => {
-    showScreen('game');
-    onPlay?.();
+    renderLevelSelect(onSelectLevel);
+    showScreen('levelSelect');
+  });
+
+  document.getElementById('level-select-back-btn')?.addEventListener('click', () => {
+    showScreen('menu');
   });
 
   document.getElementById('menu-settings-btn')?.addEventListener('click', () => {
@@ -90,6 +142,15 @@ export function initScreens({ onPlay, onPauseGame, onResumeGame } = {}) {
     closeOverlay('leaderboard-overlay');
   });
 
+  // "Change Orchard" from the Game Over modal — back to Level Select with
+  // fresh unlock state (a run that just ended may have crossed an XP
+  // threshold and unlocked something new).
+  document.getElementById('game-over-change-level-btn')?.addEventListener('click', () => {
+    closeOverlay('game-over');
+    renderLevelSelect(onSelectLevel);
+    showScreen('levelSelect');
+  });
+
   // Volume sliders — initialize from saved settings, then persist + apply
   // live on every drag.
   const sfxSlider = document.getElementById('sfx-volume-slider');
@@ -108,6 +169,20 @@ export function initScreens({ onPlay, onPauseGame, onResumeGame } = {}) {
       setSetting('musicVolume', Number(musicSlider.value) / 100);
     });
   }
+
+  _initMenuBackgroundFruit();
+}
+
+// Purely decorative floating fruit behind the main menu content — random
+// per-element timing so they drift independently rather than in lockstep.
+function _initMenuBackgroundFruit() {
+  const els = document.querySelectorAll('#main-menu .bg-fruit');
+  els.forEach((el, i) => {
+    const duration = 5 + Math.random() * 3.5;
+    const delay = -Math.random() * duration; // negative delay starts mid-cycle, avoiding a synchronized first beat
+    el.style.animationDuration = `${duration.toFixed(2)}s`;
+    el.style.animationDelay = `${delay.toFixed(2)}s`;
+  });
 }
 
 function delay(ms) {

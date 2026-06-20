@@ -1,8 +1,10 @@
 import { CONFIG } from './config.js';
-import { TIERS } from './items.js';
+import { getLevelInfo, onXPChange } from './xp.js';
+import { ConfettiBurst } from './confetti.js';
+import { lerp, easeOutQuad } from './utils.js';
 
 export class UI {
-  constructor({ onRestart }) {
+  constructor({ onRestart } = {}) {
     this.scoreEl = document.getElementById('score-value');
     this.highScoreEl = document.getElementById('highscore-value');
     this.gameOverEl = document.getElementById('game-over');
@@ -14,10 +16,32 @@ export class UI {
     this.nextSwatchEl = document.getElementById('next-swatch');
     this.nextNameEl = document.getElementById('next-name');
 
+    // XP bar
+    this.xpBarWrapEl = document.getElementById('xp-bar-wrap');
+    this.xpBarFillEl = document.getElementById('xp-bar-fill');
+    this.xpLevelLabelEl = document.getElementById('xp-level-label');
+    this.xpFractionLabelEl = document.getElementById('xp-fraction-label');
+
     this.highScore = this._loadHighScore();
     this.highScoreEl.textContent = this.highScore;
 
-    this.restartBtn.addEventListener('click', () => onRestart());
+    this._scoreTallyToken = 0; // invalidates any in-flight tally animation if a new one starts
+
+    this.restartBtn.addEventListener('click', () => onRestart?.());
+
+    this._initXPBar();
+
+    // Game Over confetti — its own small canvas inside the modal, sized to
+    // the card's actual rendered footprint (with sane minimums in case
+    // layout hasn't settled yet at construction time).
+    const confettiCanvas = document.getElementById('gameover-confetti');
+    if (confettiCanvas) {
+      const rect = confettiCanvas.getBoundingClientRect();
+      confettiCanvas.width = Math.max(280, Math.round(rect.width)) || 300;
+      confettiCanvas.height = Math.max(360, Math.round(rect.height)) || 400;
+      this.confetti = new ConfettiBurst(confettiCanvas);
+      this.confettiCanvas = confettiCanvas;
+    }
   }
 
   _loadHighScore() {
@@ -41,9 +65,11 @@ export class UI {
     this.scoreEl.textContent = score;
   }
 
-  setNextPreview(tierIndex) {
-    if (!this.nextSwatchEl) return;
-    const tier = TIERS[tierIndex];
+  // tier is now a full tier object ({ name, color, shade, radius, kind, ... })
+  // rather than an index, since different themes have differently-shaped
+  // tier arrays — this keeps the preview theme-agnostic.
+  setNextPreview(tier) {
+    if (!this.nextSwatchEl || !tier) return;
 
     // Same look as the in-game fruit (radial gradient with a highlight and a
     // shaded edge) so the preview genuinely reads as "this exact fruit",
@@ -84,13 +110,70 @@ export class UI {
   showGameOver(finalScore) {
     const isNewHigh = finalScore > this.highScore;
     this.reportLiveScore(finalScore); // covers the (rare) case it wasn't already saved live
-    this.finalScoreEl.textContent = finalScore;
     this.finalHighScoreEl.textContent = this.highScore;
     this.newHighBadgeEl.style.display = isNewHigh ? 'inline-block' : 'none';
     this.gameOverEl.classList.add('visible');
+
+    this._animateScoreTally(finalScore);
+
+    if (isNewHigh && this.confetti && this.confettiCanvas) {
+      // Burst from just above where the score number sits.
+      requestAnimationFrame(() => {
+        this.confetti.burst(this.confettiCanvas.width / 2, this.confettiCanvas.height * 0.22, 90);
+      });
+    }
+  }
+
+  // Counts the final score up from 0 rather than just slamming the number
+  // in — a beat of suspense before the result lands. A token guards against
+  // a stale animation finishing after a newer Game Over has already begun.
+  _animateScoreTally(target) {
+    const token = ++this._scoreTallyToken;
+    const duration = 900;
+    const start = performance.now();
+
+    const step = (now) => {
+      if (token !== this._scoreTallyToken) return; // superseded by a newer call
+      const t = Math.min(1, (now - start) / duration);
+      const value = Math.round(lerp(0, target, easeOutQuad(t)));
+      this.finalScoreEl.textContent = value;
+      if (t < 1) {
+        requestAnimationFrame(step);
+      } else {
+        this.finalScoreEl.textContent = target;
+      }
+    };
+    requestAnimationFrame(step);
   }
 
   hideGameOver() {
     this.gameOverEl.classList.remove('visible');
+    this.confetti?.clear();
+  }
+
+  // ---- XP bar ----------------------------------------------------------
+
+  _initXPBar() {
+    if (!this.xpBarFillEl) return;
+    this._renderXP(getLevelInfo());
+    onXPChange(({ after, leveledUp }) => this._handleXPChange(after, leveledUp));
+  }
+
+  _renderXP(info) {
+    if (!this.xpBarFillEl) return;
+    this.xpBarFillEl.style.width = `${Math.round(info.progress01 * 100)}%`;
+    if (this.xpLevelLabelEl) this.xpLevelLabelEl.textContent = `Lv ${info.level}`;
+    if (this.xpFractionLabelEl) {
+      this.xpFractionLabelEl.textContent = `${info.xpIntoLevel} / ${info.xpForNextLevel} XP`;
+    }
+  }
+
+  _handleXPChange(after, leveledUp) {
+    this._renderXP(after);
+    if (leveledUp && this.xpBarWrapEl) {
+      this.xpBarWrapEl.classList.remove('level-up-flash'); // restart the animation even if triggered twice quickly
+      void this.xpBarWrapEl.offsetWidth; // force reflow so the class re-add is treated as a fresh animation
+      this.xpBarWrapEl.classList.add('level-up-flash');
+    }
   }
 }

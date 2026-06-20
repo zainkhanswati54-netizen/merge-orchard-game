@@ -50,3 +50,18 @@ export function squishPopScale(t) {
     scaleY: base * (1 - widen),
   };
 }
+
+// Drives the "landing" squash — unlike squishPopScale, the fruit is already
+// full size (it's not spawning), it just deforms briefly on impact and
+// springs back, with a tiny elastic overshoot (a slight *stretch* the
+// opposite way) right before settling, which is what reads as "bouncy
+// physics" rather than a flat thud.
+export function landingSquashScale(t) {
+  const eased = easeOutBack(clamp(t, 0, 1));
+  const squashAmount = clamp(1 - eased, -0.3, 1);
+  const widen = 0.16 * squashAmount;
+  return {
+    scaleX: 1 + widen,
+    scaleY: 1 - widen,
+  };
+}

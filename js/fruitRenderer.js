@@ -1,12 +1,15 @@
 // ---------------------------------------------------------------------------
 // FRUIT RENDERER
 // ---------------------------------------------------------------------------
-// Each tier gets its own little illustration (seeds, leafy crowns, rind
-// stripes, stems) instead of a flat gradient circle. Everything is drawn in
-// local space centered at the origin with the given radius — drawFruit()
-// handles positioning, and the squish/pop scale used during a merge, so the
-// individual draw functions stay simple and only worry about how the fruit
-// itself looks.
+// Each fruit "kind" (cherry, mango, holly, ...) gets its own little canvas
+// illustration instead of a flat gradient circle. Looked up by `kind` string
+// (set per-tier in js/themes.js) rather than tier index, so any theme can
+// mix and match fruits freely, and an unrecognized kind safely falls back to
+// a plain glossy circle instead of crashing the renderer.
+//
+// Everything draws in local space centered at the origin with the given
+// radius — drawFruit() handles positioning plus the merge squish/pop scale,
+// so individual draw functions only worry about how the fruit itself looks.
 // ---------------------------------------------------------------------------
 
 const ACCENT = {
@@ -16,15 +19,16 @@ const ACCENT = {
   seed: '#FFE08A',
 };
 
-// Public entry point. tier is the TIERS[] entry ({ color, shade, ... }).
-// scaleX/scaleY let the caller apply the merge squish-and-pop without every
-// fruit-drawing function needing its own copy of that logic.
-export function drawFruit(ctx, tier, tierIndex, x, y, radius, scaleX = 1, scaleY = 1) {
+// Public entry point. tier is a theme's tier entry ({ color, shade, kind, ... }).
+// scaleX/scaleY let the caller apply the merge squish-and-pop (or landing
+// squash) without every fruit-drawing function needing its own copy of that
+// logic.
+export function drawFruit(ctx, tier, kind, x, y, radius, scaleX = 1, scaleY = 1) {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scaleX, scaleY);
 
-  const drawer = DRAWERS[tierIndex] || drawGenericFruit;
+  const drawer = DRAWERS[kind] || drawGenericFruit;
   drawer(ctx, radius, tier);
 
   ctx.restore();
@@ -82,14 +86,14 @@ function stemAndLeaf(ctx, r, { tilt = 0.15 } = {}) {
   ctx.restore();
 }
 
-// --- Tier 0: Cherry --------------------------------------------------------
+// === CLASSIC ORCHARD ========================================================
+
 function drawCherry(ctx, r, tier) {
   glossyBody(ctx, r, tier.color, tier.shade);
   shineHighlight(ctx, r);
   stemAndLeaf(ctx, r, { tilt: 0.35 });
 }
 
-// --- Tier 1: Strawberry -----------------------------------------------------
 const STRAWBERRY_SEEDS = [
   [-0.32, -0.05], [0.1, -0.18], [0.35, 0.05], [-0.1, 0.22], [0.22, 0.35],
   [-0.38, 0.3], [0.0, 0.0], [0.3, -0.32], [-0.22, -0.32],
@@ -97,7 +101,6 @@ const STRAWBERRY_SEEDS = [
 function drawStrawberry(ctx, r, tier) {
   glossyBody(ctx, r, tier.color, tier.shade, 0.75);
 
-  // seeds
   ctx.fillStyle = ACCENT.seed;
   for (const [dx, dy] of STRAWBERRY_SEEDS) {
     ctx.beginPath();
@@ -107,7 +110,6 @@ function drawStrawberry(ctx, r, tier) {
 
   shineHighlight(ctx, r);
 
-  // leafy star crown at the top
   ctx.fillStyle = ACCENT.leaf;
   const points = 5;
   for (let i = 0; i < points; i++) {
@@ -125,7 +127,6 @@ function drawStrawberry(ctx, r, tier) {
   }
 }
 
-// --- Tier 2: Orange ----------------------------------------------------------
 const ORANGE_SPECKLES = [
   [-0.3, -0.25], [0.25, -0.15], [0.1, 0.3], [-0.2, 0.2], [0.35, 0.1], [-0.05, -0.35],
 ];
@@ -143,9 +144,7 @@ function drawOrange(ctx, r, tier) {
   stemAndLeaf(ctx, r, { tilt: 0.1 });
 }
 
-// --- Tier 3: Apple -------------------------------------------------------------
 function drawApple(ctx, r, tier) {
-  // two-tone red/green blend body, glossier than the others
   const grad = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.08, 0, 0, r);
   grad.addColorStop(0, 'rgba(255,255,255,0.85)');
   grad.addColorStop(0.4, tier.color);
@@ -159,7 +158,6 @@ function drawApple(ctx, r, tier) {
   ctx.strokeStyle = 'rgba(0,0,0,0.16)';
   ctx.stroke();
 
-  // faint center crease, a classic apple silhouette cue
   ctx.strokeStyle = 'rgba(0,0,0,0.08)';
   ctx.lineWidth = Math.max(1, r * 0.03);
   ctx.beginPath();
@@ -171,11 +169,9 @@ function drawApple(ctx, r, tier) {
   stemAndLeaf(ctx, r, { tilt: -0.1 });
 }
 
-// --- Tier 4: Watermelon (max tier) ---------------------------------------------
 function drawWatermelon(ctx, r, tier) {
   glossyBody(ctx, r, tier.color, tier.shade, 0.7);
 
-  // curved rind stripes
   ctx.strokeStyle = tier.shade;
   ctx.lineWidth = Math.max(2, r * 0.11);
   ctx.lineCap = 'round';
@@ -189,7 +185,6 @@ function drawWatermelon(ctx, r, tier) {
 
   shineHighlight(ctx, r);
 
-  // small stem nub
   ctx.save();
   ctx.translate(0, -r * 0.95);
   ctx.fillStyle = ACCENT.stem;
@@ -199,9 +194,271 @@ function drawWatermelon(ctx, r, tier) {
   ctx.restore();
 }
 
+// === TROPICAL PARADISE ======================================================
+
+function drawMango(ctx, r, tier) {
+  // warm yellow-to-blush gradient, slightly egg-shaped via a wider radial
+  const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.4, r * 0.08, r * 0.1, r * 0.1, r * 1.05);
+  grad.addColorStop(0, 'rgba(255,255,255,0.8)');
+  grad.addColorStop(0.35, '#FFE08A');
+  grad.addColorStop(0.7, tier.color);
+  grad.addColorStop(1, '#D9472B'); // red blush toward one edge
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, r * 0.045);
+  ctx.strokeStyle = 'rgba(0,0,0,0.16)';
+  ctx.stroke();
+
+  shineHighlight(ctx, r);
+  stemAndLeaf(ctx, r, { tilt: 0.2 });
+}
+
+function drawCoconut(ctx, r, tier) {
+  glossyBody(ctx, r, tier.color, tier.shade, 0.55);
+
+  // fibrous "hairy" texture — short dark strokes radiating from center
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+  ctx.lineWidth = Math.max(1, r * 0.035);
+  ctx.lineCap = 'round';
+  const hairCount = 14;
+  for (let i = 0; i < hairCount; i++) {
+    const angle = (i / hairCount) * Math.PI * 2 + 0.3;
+    const innerR = r * 0.35;
+    const outerR = r * 0.92;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(angle) * innerR, Math.sin(angle) * innerR);
+    ctx.lineTo(Math.cos(angle) * outerR, Math.sin(angle) * outerR);
+    ctx.stroke();
+  }
+
+  // three germination pores near the top — a coconut's signature "face"
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  const poreOffsets = [[-0.16, -0.55], [0.16, -0.55], [0, -0.32]];
+  for (const [dx, dy] of poreOffsets) {
+    ctx.beginPath();
+    ctx.ellipse(dx * r, dy * r, r * 0.07, r * 0.09, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  shineHighlight(ctx, r);
+}
+
+function drawPineapple(ctx, r, tier) {
+  glossyBody(ctx, r, tier.color, tier.shade);
+
+  // diamond crosshatch rind texture
+  ctx.strokeStyle = 'rgba(0,0,0,0.14)';
+  ctx.lineWidth = Math.max(1, r * 0.035);
+  const step = r * 0.4;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.97, 0, Math.PI * 2);
+  ctx.clip();
+  for (let i = -3; i <= 3; i++) {
+    ctx.beginPath();
+    ctx.moveTo(-r * 1.2, i * step);
+    ctx.lineTo(r * 1.2, i * step + r * 0.7);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 1.2, i * step);
+    ctx.lineTo(r * 1.2, i * step - r * 0.7);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  shineHighlight(ctx, r);
+
+  // spiky leaf crown
+  ctx.fillStyle = ACCENT.leaf;
+  const spikes = 5;
+  for (let i = 0; i < spikes; i++) {
+    const angle = -Math.PI / 2 + (i - (spikes - 1) / 2) * 0.4;
+    ctx.save();
+    ctx.translate(Math.sin(angle) * r * 0.3, -r * 0.92);
+    ctx.rotate(angle * 0.6);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-r * 0.1, -r * 0.5);
+    ctx.lineTo(r * 0.1, -r * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawDragonfruit(ctx, r, tier) {
+  glossyBody(ctx, r, tier.color, tier.shade, 0.7);
+
+  // triangular green "scales" around the rim — dragonfruit's signature look
+  ctx.fillStyle = ACCENT.leaf;
+  const scaleCount = 9;
+  for (let i = 0; i < scaleCount; i++) {
+    const angle = (i / scaleCount) * Math.PI * 2;
+    ctx.save();
+    ctx.rotate(angle);
+    ctx.translate(0, -r * 0.98);
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.1, 0);
+    ctx.lineTo(r * 0.1, 0);
+    ctx.lineTo(0, -r * 0.22);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // a few small dark seed-flecks for texture
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  const flecks = [[-0.2, 0.1], [0.15, -0.1], [0.05, 0.3], [-0.1, -0.3]];
+  for (const [dx, dy] of flecks) {
+    ctx.beginPath();
+    ctx.arc(dx * r, dy * r, r * 0.035, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  shineHighlight(ctx, r);
+}
+
+// === WINTER BERRY BLAST ======================================================
+
+function drawHolly(ctx, r, tier) {
+  // small spiky holly-leaf silhouette behind a cluster of red berries
+  ctx.save();
+  ctx.fillStyle = ACCENT.leaf;
+  ctx.beginPath();
+  const spikes = 6;
+  for (let i = 0; i <= spikes; i++) {
+    const angle = (i / spikes) * Math.PI * 2;
+    const rad = i % 2 === 0 ? r * 0.95 : r * 0.65;
+    const px = Math.cos(angle) * rad;
+    const py = Math.sin(angle) * rad * 0.85 - r * 0.1;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, r * 0.04);
+  ctx.strokeStyle = ACCENT.leafDark;
+  ctx.stroke();
+  ctx.restore();
+
+  // berry cluster on top
+  const berryColor = tier.color;
+  const berryOffsets = [[-0.18, -0.05], [0.18, -0.05], [0, 0.2]];
+  for (const [dx, dy] of berryOffsets) {
+    const bx = dx * r;
+    const by = dy * r;
+    const br = r * 0.32;
+    const grad = ctx.createRadialGradient(bx - br * 0.3, by - br * 0.3, br * 0.1, bx, by, br);
+    grad.addColorStop(0, 'rgba(255,255,255,0.8)');
+    grad.addColorStop(0.5, berryColor);
+    grad.addColorStop(1, tier.shade);
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+}
+
+function drawBlueberry(ctx, r, tier) {
+  glossyBody(ctx, r, tier.color, tier.shade, 0.6);
+  shineHighlight(ctx, r);
+
+  // signature 5-point "crown" calyx mark at the top
+  ctx.save();
+  ctx.translate(0, -r * 0.05);
+  ctx.strokeStyle = 'rgba(20,20,40,0.45)';
+  ctx.lineWidth = Math.max(1, r * 0.045);
+  ctx.lineCap = 'round';
+  const points = 5;
+  for (let i = 0; i < points; i++) {
+    const angle = (i / points) * Math.PI * 2 - Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(angle) * r * 0.22, Math.sin(angle) * r * 0.22);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawCranberry(ctx, r, tier) {
+  glossyBody(ctx, r, tier.color, tier.shade, 0.8);
+  shineHighlight(ctx, r);
+
+  // small blossom-end dimple, cranberries' tell-tale mark
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.arc(0, r * 0.78, r * 0.1, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawFrozenMelon(ctx, r, tier) {
+  // icy blue-white gradient, brighter/cooler than the classic watermelon
+  const grad = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.08, 0, 0, r);
+  grad.addColorStop(0, 'rgba(255,255,255,0.95)');
+  grad.addColorStop(0.4, tier.color);
+  grad.addColorStop(1, tier.shade);
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, r * 0.045);
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.stroke();
+
+  // jagged frost-crack lines across the surface
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = Math.max(1, r * 0.03);
+  ctx.lineCap = 'round';
+  const cracks = [
+    [[-0.5, -0.2], [-0.1, -0.4], [0.2, -0.15]],
+    [[0.1, 0.1], [0.4, 0.0], [0.55, 0.3]],
+    [[-0.3, 0.3], [-0.5, 0.55]],
+  ];
+  for (const path of cracks) {
+    ctx.beginPath();
+    path.forEach(([dx, dy], i) => {
+      const px = dx * r;
+      const py = dy * r;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+  }
+
+  shineHighlight(ctx, r);
+
+  // small ice-crystal stub on top, in place of a stem
+  ctx.save();
+  ctx.translate(0, -r * 0.95);
+  ctx.fillStyle = '#E0F7FA';
+  ctx.beginPath();
+  ctx.moveTo(0, -r * 0.16);
+  ctx.lineTo(r * 0.07, 0);
+  ctx.lineTo(-r * 0.07, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawGenericFruit(ctx, r, tier) {
   glossyBody(ctx, r, tier.color, tier.shade);
   shineHighlight(ctx, r);
 }
 
-const DRAWERS = [drawCherry, drawStrawberry, drawOrange, drawApple, drawWatermelon];
+const DRAWERS = {
+  cherry: drawCherry,
+  strawberry: drawStrawberry,
+  orange: drawOrange,
+  apple: drawApple,
+  watermelon: drawWatermelon,
+  mango: drawMango,
+  coconut: drawCoconut,
+  pineapple: drawPineapple,
+  dragonfruit: drawDragonfruit,
+  holly: drawHolly,
+  blueberry: drawBlueberry,
+  cranberry: drawCranberry,
+  frozenmelon: drawFrozenMelon,
+};

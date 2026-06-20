@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>Merge Orchard — Physics Fruit Merging Game</title>
-<meta name="description" content="A juicy physics merging puzzle. Drop fruit, merge matching tiers, chase a new high score." />
+<meta name="description" content="A juicy physics merging puzzle. Drop fruit, merge matching tiers, level up, and unlock new orchards." />
 <meta name="theme-color" content="#1B1530" />
 <link rel="manifest" href="manifest.json" />
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
@@ -33,6 +33,17 @@
 
 <!-- ======================= MAIN MENU ======================= -->
 <div class="screen" id="main-menu">
+  <!-- Purely decorative floating fruit behind the menu content; timings
+       randomized per-element in screens.js so they drift independently. -->
+  <div class="menu-bg-fruits" aria-hidden="true">
+    <span class="bg-fruit" style="left:8%; top:18%;">🍒</span>
+    <span class="bg-fruit" style="left:78%; top:12%;">🍓</span>
+    <span class="bg-fruit" style="left:15%; top:68%;">🍊</span>
+    <span class="bg-fruit" style="left:85%; top:62%;">🍉</span>
+    <span class="bg-fruit" style="left:50%; top:8%;">🍎</span>
+    <span class="bg-fruit" style="left:65%; top:80%;">🥭</span>
+  </div>
+
   <div class="brand-block">
     <img class="brand-icon" src="icons/icon.svg" alt="" width="84" height="84" />
     <h1 class="brand-title">Merge Orchard</h1>
@@ -46,9 +57,29 @@
   <p class="menu-footer">Drag / arrow keys to aim · tap, click, or space to drop</p>
 </div>
 
+<!-- ======================= LEVEL SELECT ======================= -->
+<div class="screen" id="level-select-screen">
+  <div class="level-select-header">
+    <button class="icon-back-btn" id="level-select-back-btn" aria-label="Back to menu">←</button>
+    <h1 class="level-select-title">Select an Orchard</h1>
+  </div>
+  <div class="level-card-list" id="level-select-list"><!-- populated by screens.js --></div>
+</div>
+
 <!-- ======================= GAME SCREEN ======================= -->
 <div class="screen" id="game-screen">
   <div class="app-layout">
+
+    <!-- XP bar — full width, sits above the HUD/jar regardless of layout -->
+    <div class="xp-bar-wrap" id="xp-bar-wrap">
+      <div class="xp-bar-labels">
+        <span id="xp-level-label">Lv 1</span>
+        <span id="xp-fraction-label">0 / 100 XP</span>
+      </div>
+      <div class="xp-bar-track">
+        <div class="xp-bar-fill" id="xp-bar-fill"></div>
+      </div>
+    </div>
 
     <div class="hud-panel">
       <button class="hud-icon-btn" id="hud-settings-btn" aria-label="Settings">⚙</button>
@@ -119,18 +150,21 @@
 
 <!-- ======================= GAME OVER MODAL ======================= -->
 <div class="modal-overlay" id="game-over">
-  <div class="modal-card">
+  <div class="modal-card modal-card-gameover">
+    <canvas class="confetti-canvas" id="gameover-confetti" aria-hidden="true"></canvas>
+
     <h2>Game Over</h2>
     <div class="modal-stat">
       <span class="hud-label">Final Score</span>
-      <span class="hud-value" id="final-score">0</span>
+      <span class="hud-value hud-value-tally" id="final-score">0</span>
     </div>
     <div class="modal-stat">
       <span class="hud-label">Personal Best</span>
       <span class="hud-value" id="final-highscore">0</span>
-      <div><span class="badge" id="new-high-badge" style="display:none;">New Personal Best!</span></div>
+      <div><span class="badge badge-celebrate" id="new-high-badge" style="display:none;">🎉 New Personal Best! 🎉</span></div>
     </div>
     <button class="modal-primary-btn" id="restart-btn">Play Again</button>
+    <button class="modal-secondary-btn" id="game-over-change-level-btn">Change Orchard</button>
   </div>
 </div>
 

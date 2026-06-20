@@ -1,14 +1,12 @@
-// The 5-tier merge progression. Index 0 is the smallest droppable item,
-// index 4 (MAX) is the final item — merging two of those is the biggest
-// possible payoff and does not spawn anything further.
-export const TIERS = [
-  { name: 'Cherry',     radius: 15, color: '#D7263D', shade: '#A11A2B', score: 1  },
-  { name: 'Strawberry', radius: 22, color: '#FF4D6D', shade: '#C73A55', score: 3  },
-  { name: 'Orange',     radius: 31, color: '#FF8C42', shade: '#D9701F', score: 6  },
-  { name: 'Apple',      radius: 42, color: '#8BC34A', shade: '#5E8F2B', score: 10 },
-  { name: 'Watermelon', radius: 56, color: '#2E8B57', shade: '#1F6740', score: 20 },
-];
+// Kept for backward compatibility (and as a quick standalone reference) —
+// the classic 5-tier ladder now lives as the "classic" entry in
+// js/themes.js, which is the single source of truth. This file just
+// re-exports it under the original names.
+import { THEMES } from './themes.js';
 
+const classicTheme = THEMES.find((t) => t.id === 'classic');
+
+export const TIERS = classicTheme.tiers;
 export const MAX_TIER_INDEX = TIERS.length - 1;
 
 export function randomDroppableTier(droppableIndices) {

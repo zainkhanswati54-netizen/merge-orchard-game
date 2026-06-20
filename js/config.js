@@ -32,12 +32,28 @@ export const CONFIG = {
   SCREEN_SHAKE_DROP: 2.5,
   SCREEN_SHAKE_BASE_MERGE: 4,
   SCREEN_SHAKE_PER_TIER: 3.6,
+  SCREEN_SHAKE_BIG_MERGE_TIER: 3, // merges at/above this tier count as "massive" for shake+combo purposes
   POP_TWEEN_MS: 320,        // covers both the pop (scale) and squish (juicy stretch) tween
+
+  // Landing squash — a brief squash-and-stretch the moment a dropped fruit
+  // first hits something (floor, wall, or another fruit), separate from the
+  // merge spawn pop above.
+  LANDING_SQUASH_MS: 220,
+  LANDING_MIN_IMPACT_SPEED: 1.8, // below this relative speed, don't bother squashing (too gentle to read)
+
+  // Combo system — merges chained within this window of each other count as
+  // one combo; each step bumps the multiplier and grows the on-screen text.
+  COMBO_WINDOW_MS: 700,
 
   STORAGE_KEY_HIGHSCORE: 'suika_merge_high_score',
   STORAGE_KEY_SETTINGS: 'suika_merge_settings',
   STORAGE_KEY_LEADERBOARD: 'suika_merge_leaderboard',
+  STORAGE_KEY_XP: 'suika_merge_xp',
   LEADERBOARD_SIZE: 5,
+
+  // XP / leveling — requirement grows geometrically per level, see js/xp.js.
+  XP_BASE_PER_LEVEL: 100,
+  XP_GROWTH_RATE: 1.15,
 
   // Loading screen — a floor on how long it stays up, so it reads as a real
   // loading screen even when everything technically finishes loading instantly.

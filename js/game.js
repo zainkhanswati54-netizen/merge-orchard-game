@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { TIERS, MAX_TIER_INDEX, randomDroppableTier } from './items.js';
+import { randomDroppableTier } from './items.js';
 import { PhysicsWorld } from './physics.js';
 import { ParticleSystem } from './particles.js';
 import { ScreenShake } from './screenshake.js';
@@ -8,15 +8,19 @@ import { InputController } from './input.js';
 import { playDropSound, playMergeSound, playGameOverSound, preloadAudio, startMusic } from './audio.js';
 import { drawFruit } from './fruitRenderer.js';
 import { recordScore } from './leaderboard.js';
-import { clamp, squishPopScale } from './utils.js';
+import { addXP } from './xp.js';
+import { FloatingTextSystem } from './floatingText.js';
+import { clamp, squishPopScale, landingSquashScale } from './utils.js';
+
+const BIG_MERGE_CALLOUTS = ['SPLASH!', 'JUICY!', 'POW!', 'NICE!'];
 
 export class Game {
-  constructor(canvas) {
+  constructor(canvas, theme) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
 
-    this.physics = new PhysicsWorld();
     this.particles = new ParticleSystem();
+    this.floatingText = new FloatingTextSystem();
     this.shake = new ScreenShake();
     this.ui = new UI({ onRestart: () => this.restart() });
     this.input = new InputController(canvas, {
@@ -28,34 +32,67 @@ export class Game {
       },
     });
 
-    this.popTweens = new Map();      // itemId -> spawnTimestamp
+    this.popTweens = new Map();        // itemId -> spawnTimestamp (merge/drop pop-in)
+    this.landingSquashes = new Map();  // itemId -> impactTimestamp (first-hit squash)
     this.consumedThisStep = new Set();
     this.paused = false; // true while the in-game Settings overlay is open
 
-    this.physics.onCollisionStart((pairs) => this.handleCollisions(pairs));
+    this.comboCount = 0;
+    this.lastMergeTime = 0;
 
+    this._buildPhysicsForTheme(theme);
     this._resetState();
 
     this.lastFrameTime = performance.now();
     requestAnimationFrame((t) => this._loop(t));
   }
 
+  // (Re)builds the physics world to match the active theme's jar width —
+  // narrower jars in harder orchards are real walls, not just a visual
+  // illusion, so collisions/merges genuinely happen in a tighter space.
+  _buildPhysicsForTheme(theme) {
+    this.theme = theme;
+    this.physics = new PhysicsWorld(theme.modifiers.boxWidthScale);
+    this.physics.onCollisionStart((pairs) => this.handleCollisions(pairs));
+  }
+
+  get tiers() {
+    return this.theme.tiers;
+  }
+
+  get maxTierIndex() {
+    return this.theme.tiers.length - 1;
+  }
+
+  get droppableIndices() {
+    const count = Math.min(this.theme.droppableCount, this.theme.tiers.length);
+    return Array.from({ length: count }, (_, i) => i);
+  }
+
   _resetState() {
     this.score = 0;
     this.state = 'playing';
     this.dangerTimer = 0;
-    this.dropperX = CONFIG.BOX_WIDTH / 2;
+    this.dropperX = (this.physics.playLeft + this.physics.playRight) / 2;
     this.nextDropAllowedAt = 0;
-    this.currentTier = randomDroppableTier(CONFIG.DROPPABLE_TIER_INDICES);
-    this.nextTier = randomDroppableTier(CONFIG.DROPPABLE_TIER_INDICES);
+    this.comboCount = 0;
+    this.lastMergeTime = 0;
+    this.currentTier = randomDroppableTier(this.droppableIndices);
+    this.nextTier = randomDroppableTier(this.droppableIndices);
     this.ui.setScore(0);
-    this.ui.setNextPreview(this.nextTier);
+    this.ui.setNextPreview(this.tiers[this.nextTier]);
     this.ui.hideGameOver();
   }
 
-  restart() {
-    for (const body of this.physics.getItemBodies()) this.physics.removeBody(body);
+  // theme is optional — omit it to restart the same orchard (the common
+  // "Play Again" case); pass a new theme to switch orchards entirely (the
+  // "Change Orchard" flow from the Game Over modal). Always rebuilding
+  // physics here (even for a same-theme restart) keeps every run starting
+  // from a guaranteed-clean slate — no residual forces or stale walls.
+  restart(theme) {
+    this._buildPhysicsForTheme(theme || this.theme);
     this.popTweens.clear();
+    this.landingSquashes.clear();
     this._resetState();
   }
 
@@ -72,8 +109,8 @@ export class Game {
 
   setDropperX(x) {
     if (this.state !== 'playing') return;
-    const r = TIERS[this.currentTier].radius;
-    this.dropperX = clamp(x, r, CONFIG.BOX_WIDTH - r);
+    const r = this.tiers[this.currentTier].radius;
+    this.dropperX = clamp(x, this.physics.playLeft + r, this.physics.playRight - r);
   }
 
   tryDrop() {
@@ -82,11 +119,12 @@ export class Game {
     startMusic();
     const now = performance.now();
     if (now < this.nextDropAllowedAt) return;
-    this.nextDropAllowedAt = now + CONFIG.DROP_COOLDOWN_MS;
+    const cooldown = CONFIG.DROP_COOLDOWN_MS * this.theme.modifiers.dropCooldownScale;
+    this.nextDropAllowedAt = now + cooldown;
 
     const tier = this.currentTier;
-    const radius = TIERS[tier].radius;
-    const x = clamp(this.dropperX, radius, CONFIG.BOX_WIDTH - radius);
+    const radius = this.tiers[tier].radius;
+    const x = clamp(this.dropperX, this.physics.playLeft + radius, this.physics.playRight - radius);
     const body = this.physics.addItem(x, CONFIG.DROPPER_Y, tier, radius);
     this.popTweens.set(body.itemId, now);
 
@@ -94,14 +132,21 @@ export class Game {
     this.shake.trigger(CONFIG.SCREEN_SHAKE_DROP, 120);
 
     this.currentTier = this.nextTier;
-    this.nextTier = randomDroppableTier(CONFIG.DROPPABLE_TIER_INDICES);
-    this.ui.setNextPreview(this.nextTier);
+    this.nextTier = randomDroppableTier(this.droppableIndices);
+    this.ui.setNextPreview(this.tiers[this.nextTier]);
   }
 
   handleCollisions(pairs) {
     for (const pair of pairs) {
       const a = pair.bodyA;
       const b = pair.bodyB;
+
+      // Landing squash: fires once per body, on its first forceful contact
+      // with *anything* (wall or fruit) — independent of whether a merge
+      // happens. Checked for both bodies in every pair.
+      this._maybeTriggerLanding(a);
+      this._maybeTriggerLanding(b);
+
       if (a.label !== 'item' || b.label !== 'item') continue;
       if (this.consumedThisStep.has(a.id) || this.consumedThisStep.has(b.id)) continue;
       if (a.tier !== b.tier) continue;
@@ -112,37 +157,78 @@ export class Game {
     }
   }
 
+  _maybeTriggerLanding(body) {
+    if (body.label !== 'item' || body.hasLanded) return;
+    const now = performance.now();
+    // Wait until its spawn-in pop has finished so the two effects never
+    // visually fight each other on the same fruit.
+    if (now - body.spawnTime < CONFIG.POP_TWEEN_MS) return;
+    const speed = Math.hypot(body.velocity.x, body.velocity.y);
+    if (speed < CONFIG.LANDING_MIN_IMPACT_SPEED) return;
+    body.hasLanded = true;
+    this.landingSquashes.set(body.itemId, now);
+  }
+
   _resolveMerge(a, b) {
     const tier = a.tier;
     const mx = (a.position.x + b.position.x) / 2;
     const my = (a.position.y + b.position.y) / 2;
-    const color = TIERS[tier].color;
+    const color = this.tiers[tier].color;
 
     this.physics.removeBody(a);
     this.physics.removeBody(b);
     this.popTweens.delete(a.itemId);
     this.popTweens.delete(b.itemId);
+    this.landingSquashes.delete(a.itemId);
+    this.landingSquashes.delete(b.itemId);
 
     this.particles.spawnBurst(mx, my, color, tier);
     playMergeSound(tier);
 
+    // Combo tracking: merges chained within COMBO_WINDOW_MS of each other
+    // build a streak; a gap longer than that starts a fresh chain at 1.
+    const now = performance.now();
+    this.comboCount = now - this.lastMergeTime <= CONFIG.COMBO_WINDOW_MS ? this.comboCount + 1 : 1;
+    this.lastMergeTime = now;
+
+    const isBigMerge = tier >= CONFIG.SCREEN_SHAKE_BIG_MERGE_TIER;
+
     // Bigger fruit merging = a bigger, longer screen shake — make the
-    // watermelon-tier merge feel like a genuine event.
+    // top-tier merge feel like a genuine event.
     const shakeAmount = CONFIG.SCREEN_SHAKE_BASE_MERGE + tier * CONFIG.SCREEN_SHAKE_PER_TIER;
     this.shake.trigger(shakeAmount, 180 + tier * 40);
 
-    if (tier >= MAX_TIER_INDEX) {
+    let scoreGain;
+    if (tier >= this.maxTierIndex) {
       // Top tier merge: no further item to spawn — big score bonus instead.
-      this.score += TIERS[tier].score * 2;
-      this.ui.reportLiveScore(this.score);
-      return;
+      scoreGain = this.tiers[tier].score * 2;
+    } else {
+      const newTier = tier + 1;
+      const newBody = this.physics.addItem(mx, my, newTier, this.tiers[newTier].radius);
+      this.popTweens.set(newBody.itemId, now);
+      scoreGain = this.tiers[newTier].score;
     }
 
-    const newTier = tier + 1;
-    const newBody = this.physics.addItem(mx, my, newTier, TIERS[newTier].radius);
-    this.popTweens.set(newBody.itemId, performance.now());
-    this.score += TIERS[newTier].score;
+    this.score += scoreGain;
     this.ui.reportLiveScore(this.score);
+
+    // XP mirrors the score gained from this merge — simple, consistent, and
+    // means a player chasing a high score is automatically also leveling up.
+    const xpResult = addXP(scoreGain);
+
+    // --- Juice: floating text -------------------------------------------
+    this.floatingText.spawnScore(mx, my, scoreGain, color);
+    if (isBigMerge) {
+      const callout = BIG_MERGE_CALLOUTS[Math.floor(Math.random() * BIG_MERGE_CALLOUTS.length)];
+      this.floatingText.spawnCallout(mx, my, callout, '#fff');
+    }
+    if (this.comboCount >= 2) {
+      this.floatingText.spawnCombo(mx, my, this.comboCount);
+    }
+    if (xpResult.leveledUp) {
+      this.floatingText.spawnCallout(mx, my - 26, 'LEVEL UP!', '#FFC857');
+      this.shake.trigger(9, 260);
+    }
   }
 
   _updateDangerTimer(dtMs) {
@@ -187,12 +273,14 @@ export class Game {
       if (this.input.holdRight) this.setDropperX(this.dropperX + moveAmount);
 
       this.physics.step(dtMs);
+      this.physics.applyWind(this.theme.modifiers.windStrength, dtMs);
       this._updateDangerTimer(dtMs);
       this.ui.setScore(this.score);
     }
 
     if (!this.paused) {
       this.particles.update(dtMs);
+      this.floatingText.update(dtMs);
       this.shake.update(dtMs);
     }
 
@@ -214,19 +302,31 @@ export class Game {
     this._drawItems(ctx);
     this._drawDropperGuide(ctx);
     this.particles.draw(ctx);
+    this.floatingText.draw(ctx);
 
     ctx.restore();
   }
 
   _drawJar(ctx) {
-    // Soft glass-jar backdrop: a faint vertical gradient plus a bright rim
-    // highlight along the top edge, so the container reads as glossy glass
-    // rather than a flat panel.
+    const left = this.physics.playLeft;
+    const right = this.physics.playRight;
+    const width = right - left;
+
+    // Dead-margin side panels (only visible when a theme narrows the jar) —
+    // drawn as solid "wall" slabs so the narrower play area reads as a real
+    // physical constraint, not a rendering glitch.
+    if (left > 0.5) {
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      ctx.fillRect(0, 0, left, CONFIG.BOX_HEIGHT);
+      ctx.fillRect(right, 0, CONFIG.BOX_WIDTH - right, CONFIG.BOX_HEIGHT);
+    }
+
+    // Soft glass-jar backdrop within the actual playable interior.
     const bgGrad = ctx.createLinearGradient(0, 0, 0, CONFIG.BOX_HEIGHT);
     bgGrad.addColorStop(0, 'rgba(255,255,255,0.05)');
     bgGrad.addColorStop(1, 'rgba(255,255,255,0.015)');
     ctx.fillStyle = bgGrad;
-    roundRectPath(ctx, 2, 2, CONFIG.BOX_WIDTH - 4, CONFIG.BOX_HEIGHT - 4, 18);
+    roundRectPath(ctx, left + 2, 2, width - 4, CONFIG.BOX_HEIGHT - 4, 18);
     ctx.fill();
 
     ctx.lineWidth = 2;
@@ -235,8 +335,8 @@ export class Game {
 
     // top rim highlight
     ctx.beginPath();
-    ctx.moveTo(16, 4);
-    ctx.lineTo(CONFIG.BOX_WIDTH - 16, 4);
+    ctx.moveTo(left + 16, 4);
+    ctx.lineTo(right - 16, 4);
     ctx.lineWidth = 2;
     ctx.strokeStyle = 'rgba(255,255,255,0.35)';
     ctx.stroke();
@@ -245,9 +345,10 @@ export class Game {
   _drawItems(ctx) {
     const now = performance.now();
     for (const body of this.physics.getItemBodies()) {
-      const tier = TIERS[body.tier];
+      const tier = this.tiers[body.tier];
       let scaleX = 1;
       let scaleY = 1;
+
       const spawnedAt = this.popTweens.get(body.itemId);
       if (spawnedAt !== undefined) {
         const t = (now - spawnedAt) / CONFIG.POP_TWEEN_MS;
@@ -258,16 +359,31 @@ export class Game {
           scaleX = squish.scaleX;
           scaleY = squish.scaleY;
         }
+      } else {
+        const landedAt = this.landingSquashes.get(body.itemId);
+        if (landedAt !== undefined) {
+          const t = (now - landedAt) / CONFIG.LANDING_SQUASH_MS;
+          if (t >= 1) {
+            this.landingSquashes.delete(body.itemId);
+          } else {
+            const squash = landingSquashScale(t);
+            scaleX = squash.scaleX;
+            scaleY = squash.scaleY;
+          }
+        }
       }
-      drawFruit(ctx, tier, body.tier, body.position.x, body.position.y, tier.radius, scaleX, scaleY);
+
+      drawFruit(ctx, tier, tier.kind, body.position.x, body.position.y, tier.radius, scaleX, scaleY);
     }
   }
 
   _drawDropperGuide(ctx) {
     if (this.state !== 'playing') return;
-    const tier = TIERS[this.currentTier];
+    const tier = this.tiers[this.currentTier];
 
-    // faint vertical aim line
+    // Ghost guide line: a faint dashed vertical line straight down from the
+    // current aim position, so players can precisely line up a drop before
+    // committing to it.
     ctx.save();
     ctx.setLineDash([5, 7]);
     ctx.strokeStyle = 'rgba(255,255,255,0.18)';
@@ -278,7 +394,7 @@ export class Game {
     ctx.stroke();
     ctx.restore();
 
-    drawFruit(ctx, tier, this.currentTier, this.dropperX, CONFIG.DROPPER_Y, tier.radius);
+    drawFruit(ctx, tier, tier.kind, this.dropperX, CONFIG.DROPPER_Y, tier.radius);
   }
 }
 

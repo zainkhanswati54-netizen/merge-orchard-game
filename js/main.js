@@ -1,6 +1,7 @@
 import { CONFIG } from './config.js';
 import { Game } from './game.js';
-import { initScreens, runLoadingSequence } from './screens.js';
+import { initScreens, runLoadingSequence, showScreen } from './screens.js';
+import { getThemeById } from './themes.js';
 
 function setupCanvas(canvas) {
   const dpr = window.devicePixelRatio || 1;
@@ -16,20 +17,25 @@ window.addEventListener('DOMContentLoaded', async () => {
   const canvas = document.getElementById('game-canvas');
   setupCanvas(canvas);
 
-  // The Game instance is created lazily on the first "Play" press rather
-  // than at boot — no point ticking physics behind the main menu. Pressing
-  // Play again later just restarts the same instance in place.
+  // The Game instance is created lazily on the first level selection rather
+  // than at boot — no point ticking physics behind the menu. Selecting a
+  // level again later (same or different orchard) just restarts the same
+  // instance in place via Game#restart(theme).
   let game = null;
 
+  function startGame(themeId) {
+    const theme = getThemeById(themeId);
+    showScreen('game');
+    if (!game) {
+      game = new Game(canvas, theme);
+      window.__game = game; // handy for console debugging
+    } else {
+      game.restart(theme);
+    }
+  }
+
   initScreens({
-    onPlay: () => {
-      if (!game) {
-        game = new Game(canvas);
-        window.__game = game; // handy for console debugging
-      } else {
-        game.restart();
-      }
-    },
+    onSelectLevel: (themeId) => startGame(themeId),
     onPauseGame: () => game?.pause(),
     onResumeGame: () => game?.resume(),
   });
