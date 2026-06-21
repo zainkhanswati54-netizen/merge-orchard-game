@@ -9,7 +9,10 @@ floating background fruit, a Level Select screen for three unlockable orchards,
 a Settings overlay with working volume sliders, a local Leaderboard, glossy
 hand-illustrated fruit (13 unique fruits across 3 themes), an XP/leveling system,
 combo chains with floating combat text, and an animated Game Over sequence with
-a score tally and a confetti celebration on a new personal best.
+a score tally and a confetti celebration on a new personal best. An 8-sound SFX
+set plus an upbeat looping music track keep the whole thing feeling energetic,
+and a GitHub Actions workflow builds a real Android APK automatically on every
+push — see `GITHUB_ACTIONS_GUIDE.md`.
 
 ## Project structure
 
@@ -26,7 +29,8 @@ js/leaderboard.js         local top-5 high scores, persisted to localStorage
 js/fruitRenderer.js       13 hand-drawn glossy fruit illustrations, looked up by "kind" string
 js/floatingText.js        combat-text popups (+score, combo callouts, SPLASH!/LEVEL UP!)
 js/confetti.js            self-contained confetti burst for the new-high-score celebration
-js/audio.js               Web Audio SFX + looping music bed, both wired to Settings volume
+js/audio.js               Web Audio playback engine for SFX + looping music, wired to Settings volume
+js/sfxLibrary.js          sound file paths + per-sound volume balancing (pure data, no playback logic)
 js/physics.js             Matter.js wrapper — configurable jar width (narrower themes), wind force
 js/particles.js           merge explosion particle bursts
 js/screenshake.js         decaying camera-shake effect (scales with merge tier)
@@ -35,14 +39,18 @@ js/ui.js                  in-game HUD, XP bar, animated Game Over tally + confet
 js/screens.js             loading sequence, menu/level-select nav, Settings/Leaderboard wiring
 js/game.js                the actual game loop: merging, combos, landing squash, wind, XP, danger timer
 js/main.js                boots everything, owns the Game instance, wires level selection
-assets/sounds/            real sound files: drop, merge, game-over, and a looping music bed
+assets/sounds/            8 SFX + a looping music bed — see the Audio section below
 manifest.json            PWA manifest (Android "Add to Home Screen")
 sw.js                     tiny offline cache (optional, safe to ignore)
 icons/icon.svg            app icon used by the manifest
+package.json              Capacitor dependencies — shared by local builds and the CI workflow
 capacitor.config.json    Capacitor config for the native Android build (set your appId before building)
-setup-android.sh          one-shot script that wires Capacitor + icons into android/
+setup-android.sh          one-shot LOCAL build script (installs Capacitor + icons into android/)
+scripts/install-android-icons.sh   icon-copying logic shared by setup-android.sh and CI, so they can't drift apart
+.github/workflows/build-android.yml   CI pipeline — builds an APK automatically on every push
 android-assets/           pre-generated app icons (all densities, adaptive) + Play Store listing graphics
-ANDROID_BUILD_GUIDE.md   full walkthrough: Capacitor → signed APK/AAB → Play Console checklist
+GITHUB_ACTIONS_GUIDE.md  fully automated APK builds — push to GitHub, download the APK, no manual steps
+ANDROID_BUILD_GUIDE.md   manual walkthrough: Capacitor → signed APK/AAB → Play Console checklist
 ```
 
 Why this many files and not one giant script: each one owns exactly one job
@@ -179,12 +187,24 @@ appears (`js/leaderboard.js`, top 5 scores).
 
 ## Audio
 
-Real sound is wired up and playing — `js/audio.js` loads four short, original,
-royalty-free files from `assets/sounds/`: three SFX (`drop.ogg`, `merge.ogg`,
-`gameover.ogg`) through the Web Audio API, plus a seamlessly-looping ambient
-music bed (`music_loop.ogg`) played through a standard `<audio>` element.
+Real sound is wired up and playing — `js/audio.js` loads eight short SFX plus
+a looping music bed from `assets/sounds/`, with file paths and per-sound
+volume balancing kept in `js/sfxLibrary.js` (separate from the playback
+engine, so tuning a sound's loudness never means touching Web Audio code).
 
-Both SFX and music volume are live-wired to the Settings overlay's sliders
+| Sound | Fires on |
+|---|---|
+| `drop.ogg` | every drop |
+| `merge.ogg` | every merge (pitch-shifted per tier — see below) |
+| `land.ogg` | a fruit's first real impact with anything (matches the landing-squash visual) |
+| `combo.ogg` | a chained merge, ≥2 in the streak (pitch rises slightly with the streak) |
+| `levelUp.ogg` | crossing an XP level threshold |
+| `unlock.ogg` | unlocking a new orchard |
+| `click.ogg` | menu/UI navigation taps |
+| `gameover.ogg` | game over |
+| `music_loop.ogg` | looping background music bed |
+
+All SFX and music volume are live-wired to the Settings overlay's sliders
 via `js/settings.js` — dragging a slider updates `localStorage` immediately
 and takes effect on the very next sound (SFX) or instantly (music, since its
 `<audio>` element's `.volume` is updated the moment the slider moves).
@@ -201,10 +221,29 @@ anywhere in the game (see `onFirstInteraction` in `js/input.js`) — by the
 time they actually drop something, the files have almost always already
 finished loading.
 
-Want to swap in your own sounds instead? Just replace the files in
-`assets/sounds/` with same-named files (any format `<audio>`/Web Audio
-supports — mp3, wav, ogg) and update the paths in `SOUND_FILES`/`MUSIC_FILE`
-at the top of `js/audio.js` if you rename them.
+### About the music — and getting a "real" track instead
+
+Every sound file here, including `music_loop.ogg`, is **synthesized from
+scratch** (plain sine/noise generation in Python — see the comments in the
+generation approach if you want to regenerate or retune it) specifically so
+there's zero copyright risk shipping it. The current loop is tuned to be
+upbeat: a driving eighth-note pluck pattern over a I–V–vi–IV chord
+progression with a light percussive pulse, rather than a static ambient pad.
+
+That said, an original synth track is never going to compete with a
+real composed piece. If you want one, here are specific, verified, genuinely
+free-for-commercial-use, no-attribution-required tracks that fit this game
+well (Pixabay's license covers all of these — confirm current terms before
+shipping, licenses can change):
+
+- ["Puzzle Game Loop - Bright Casual Video Game Music" by Cyberwave-Orchestra](https://pixabay.com/music/main-title-puzzle-game-loop-bright-casual-video-game-music-249201/) — closest match to this game's energy
+- [Pixabay's "upbeat" music search](https://pixabay.com/music/search/upbeat/) for more options
+
+To swap one in: download the MP3, drop it in `assets/sounds/` as
+`music_loop.ogg` (or update the `MUSIC_FILE` path in `js/sfxLibrary.js` if
+you keep the `.mp3` extension), done. The same applies to any of the SFX —
+replace a file in `assets/sounds/` and update its path in `SOUND_FILES` in
+`js/sfxLibrary.js` if you rename it.
 
 ## Publishing to itch.io (web)
 
@@ -217,14 +256,19 @@ at the top of `js/audio.js` if you rename them.
 
 ## Getting this onto Android
 
-You've got two paths depending on how "real app" you need it to be:
+Three paths, from least to most effort:
 
 **1. Instant path — installable web app (no Play Store, no native build):**
 Open the page in Chrome on an Android phone → menu → **"Add to shortcut" / "Install app."**
 The `manifest.json` + `sw.js` already in this project make it launch full-screen with
 its own icon, just like a native app. This is the fastest way to get it on a phone today.
 
-**2. Native APK path — for the Play Store:**
+**2. Automated APK — GitHub Actions builds it for you:**
+Push this folder to a GitHub repo and a workflow (`.github/workflows/build-android.yml`)
+builds a real, installable APK automatically on every push — no Android Studio, no manual
+Capacitor commands. Full walkthrough in **`GITHUB_ACTIONS_GUIDE.md`**.
+
+**3. Manual native build — for local control or the Play Store:**
 This needs a native build environment (Android Studio + Android SDK) that isn't available
 inside this chat, so you'll do this step on your own machine. Full walkthrough — including
 pre-generated app icons, adaptive icon layers, Play Store listing graphics, signing, and a

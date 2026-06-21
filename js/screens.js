@@ -11,7 +11,7 @@
 import { CONFIG } from './config.js';
 import { getSettings, setSetting } from './settings.js';
 import { getLeaderboard } from './leaderboard.js';
-import { preloadAudio } from './audio.js';
+import { preloadAudio, playClickSound } from './audio.js';
 import { THEMES, isThemeUnlocked } from './themes.js';
 import { getTotalXP } from './xp.js';
 
@@ -90,7 +90,10 @@ function renderLevelSelect(onSelect) {
     `;
 
     if (unlocked) {
-      card.addEventListener('click', () => onSelect(theme.id));
+      card.addEventListener('click', () => {
+        playClickSound();
+        onSelect(theme.id);
+      });
     } else {
       card.addEventListener('click', () => {
         card.classList.remove('shake');
@@ -109,19 +112,23 @@ function renderLevelSelect(onSelect) {
 // instance exists yet.
 export function initScreens({ onSelectLevel, onPauseGame, onResumeGame } = {}) {
   document.getElementById('menu-play-btn')?.addEventListener('click', () => {
+    playClickSound();
     renderLevelSelect(onSelectLevel);
     showScreen('levelSelect');
   });
 
   document.getElementById('level-select-back-btn')?.addEventListener('click', () => {
+    playClickSound();
     showScreen('menu');
   });
 
   document.getElementById('menu-settings-btn')?.addEventListener('click', () => {
+    playClickSound();
     openOverlay('settings-overlay');
   });
 
   document.getElementById('menu-leaderboard-btn')?.addEventListener('click', () => {
+    playClickSound();
     renderLeaderboard();
     openOverlay('leaderboard-overlay');
   });
@@ -129,16 +136,19 @@ export function initScreens({ onSelectLevel, onPauseGame, onResumeGame } = {}) {
   // In-HUD settings icon — only relevant once a game is actually running,
   // so it also pauses play while the overlay is open.
   document.getElementById('hud-settings-btn')?.addEventListener('click', () => {
+    playClickSound();
     onPauseGame?.();
     openOverlay('settings-overlay');
   });
 
   document.getElementById('settings-close-btn')?.addEventListener('click', () => {
+    playClickSound();
     closeOverlay('settings-overlay');
     onResumeGame?.();
   });
 
   document.getElementById('leaderboard-close-btn')?.addEventListener('click', () => {
+    playClickSound();
     closeOverlay('leaderboard-overlay');
   });
 
@@ -146,6 +156,7 @@ export function initScreens({ onSelectLevel, onPauseGame, onResumeGame } = {}) {
   // fresh unlock state (a run that just ended may have crossed an XP
   // threshold and unlocked something new).
   document.getElementById('game-over-change-level-btn')?.addEventListener('click', () => {
+    playClickSound();
     closeOverlay('game-over');
     renderLevelSelect(onSelectLevel);
     showScreen('levelSelect');

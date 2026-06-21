@@ -5,10 +5,14 @@ import { ParticleSystem } from './particles.js';
 import { ScreenShake } from './screenshake.js';
 import { UI } from './ui.js';
 import { InputController } from './input.js';
-import { playDropSound, playMergeSound, playGameOverSound, preloadAudio, startMusic } from './audio.js';
+import {
+  playDropSound, playMergeSound, playGameOverSound, preloadAudio, startMusic,
+  playLandSound, playLevelUpSound, playComboSound, playUnlockSound,
+} from './audio.js';
 import { drawFruit } from './fruitRenderer.js';
 import { recordScore } from './leaderboard.js';
-import { addXP } from './xp.js';
+import { addXP, onXPChange } from './xp.js';
+import { THEMES, isThemeUnlocked } from './themes.js';
 import { FloatingTextSystem } from './floatingText.js';
 import { clamp, squishPopScale, landingSquashScale } from './utils.js';
 
@@ -43,8 +47,27 @@ export class Game {
     this._buildPhysicsForTheme(theme);
     this._resetState();
 
+    // Detect a theme crossing from locked to unlocked the moment it
+    // happens (not just at Level Select render time), so an unlock during
+    // active play gets an immediate, satisfying callout instead of being
+    // silently discovered later.
+    onXPChange(({ before, after }) => this._checkNewUnlocks(before.totalXP, after.totalXP));
+
     this.lastFrameTime = performance.now();
     requestAnimationFrame((t) => this._loop(t));
+  }
+
+  _checkNewUnlocks(beforeXP, afterXP) {
+    for (const theme of THEMES) {
+      const wasLocked = !isThemeUnlocked(theme, beforeXP);
+      const nowUnlocked = isThemeUnlocked(theme, afterXP);
+      if (wasLocked && nowUnlocked) {
+        playUnlockSound();
+        const x = (this.physics.playLeft + this.physics.playRight) / 2;
+        this.floatingText.spawnCallout(x, CONFIG.BOX_HEIGHT * 0.3, `🔓 ${theme.name.toUpperCase()} UNLOCKED!`, '#FFC857');
+        this.shake.trigger(7, 280);
+      }
+    }
   }
 
   // (Re)builds the physics world to match the active theme's jar width —
@@ -167,6 +190,7 @@ export class Game {
     if (speed < CONFIG.LANDING_MIN_IMPACT_SPEED) return;
     body.hasLanded = true;
     this.landingSquashes.set(body.itemId, now);
+    playLandSound();
   }
 
   _resolveMerge(a, b) {
@@ -224,9 +248,11 @@ export class Game {
     }
     if (this.comboCount >= 2) {
       this.floatingText.spawnCombo(mx, my, this.comboCount);
+      playComboSound(this.comboCount);
     }
     if (xpResult.leveledUp) {
       this.floatingText.spawnCallout(mx, my - 26, 'LEVEL UP!', '#FFC857');
+      playLevelUpSound();
       this.shake.trigger(9, 260);
     }
   }
@@ -238,9 +264,14 @@ export class Game {
     for (const body of this.physics.getItemBodies()) {
       const age = now - body.spawnTime;
       if (age < CONFIG.DANGER_GRACE_MS) continue; // still falling in from the dropper
-      const speed = Math.hypot(body.velocity.x, body.velocity.y);
+      // Only the vertical component counts as "settled." Wind (Tropical/
+      // Winter themes) only ever pushes horizontally, so a fruit gently
+      // swaying side to side while otherwise resting still correctly
+      // counts as dangerous — wind can never accidentally stop the player
+      // from losing.
+      const verticalSpeed = Math.abs(body.velocity.y);
       const topEdge = body.position.y - body.circleRadius;
-      if (topEdge < CONFIG.DANGER_LINE_Y && speed < CONFIG.DANGER_SETTLE_SPEED) {
+      if (topEdge < CONFIG.DANGER_LINE_Y && verticalSpeed < CONFIG.DANGER_SETTLE_SPEED) {
         dangerous = true;
         break;
       }

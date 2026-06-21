@@ -5,6 +5,13 @@ project, so you get a proper signed `.aab`/`.apk`, a real app icon, and full
 control in Android Studio. Everything here runs **on your own machine** —
 Android Studio and the Android SDK can't run inside this chat.
 
+> **Want this automated instead?** If you just want a working APK with the
+> least possible manual effort (and zero risk of a copy-paste mistake along
+> the way), see **`GITHUB_ACTIONS_GUIDE.md`** — push this folder to GitHub
+> and a workflow builds the APK for you on every push. This guide is for
+> when you specifically want local control (Android Studio, an emulator,
+> step-by-step debugging) or a Play Store submission.
+
 ## 0. Prerequisites (one-time install)
 
 - **Node.js** (LTS) — [nodejs.org](https://nodejs.org)

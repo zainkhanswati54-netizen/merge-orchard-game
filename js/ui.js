@@ -2,6 +2,7 @@ import { CONFIG } from './config.js';
 import { getLevelInfo, onXPChange } from './xp.js';
 import { ConfettiBurst } from './confetti.js';
 import { lerp, easeOutQuad } from './utils.js';
+import { playClickSound } from './audio.js';
 
 export class UI {
   constructor({ onRestart } = {}) {
@@ -27,7 +28,10 @@ export class UI {
 
     this._scoreTallyToken = 0; // invalidates any in-flight tally animation if a new one starts
 
-    this.restartBtn.addEventListener('click', () => onRestart?.());
+    this.restartBtn.addEventListener('click', () => {
+      playClickSound();
+      onRestart?.();
+    });
 
     this._initXPBar();
 

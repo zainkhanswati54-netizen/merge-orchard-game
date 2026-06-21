@@ -3,6 +3,8 @@
 // ---------------------------------------------------------------------------
 // Real Web Audio playback for SFX, plus a looping background music bed, both
 // wired live to the Settings overlay's volume sliders via settings.js.
+// Sound file paths and per-sound gains live in sfxLibrary.js — this module
+// is purely playback plumbing.
 //
 // One trick worth calling out: the merge SFX is a single base file whose
 // *playback rate* is shifted per tier — lower tiers play it back faster/
@@ -15,13 +17,7 @@
 
 import { MAX_TIER_INDEX } from './items.js';
 import { getSettings, onSettingsChange } from './settings.js';
-
-const SOUND_FILES = {
-  drop: 'assets/sounds/drop.ogg',
-  merge: 'assets/sounds/merge.ogg',
-  gameOver: 'assets/sounds/gameover.ogg',
-};
-const MUSIC_FILE = 'assets/sounds/music_loop.ogg';
+import { SOUND_FILES, MUSIC_FILE, SOUND_GAIN } from './sfxLibrary.js';
 
 let audioCtx = null;
 const buffers = {};
@@ -96,24 +92,29 @@ function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
-function play(key, { rate = 1, gain = 1 } = {}) {
+function play(key, { rate = 1, gain } = {}) {
   const ctx = ensureContext();
   if (!ctx || !buffers[key]) return false; // not loaded yet, or audio unsupported
   const source = ctx.createBufferSource();
   source.buffer = buffers[key];
   source.playbackRate.value = rate;
 
+  const baseGain = gain !== undefined ? gain : (SOUND_GAIN[key] ?? 1);
   const gainNode = ctx.createGain();
-  gainNode.gain.value = gain * getSettings().sfxVolume;
+  gainNode.gain.value = baseGain * getSettings().sfxVolume;
 
   source.connect(gainNode).connect(ctx.destination);
   source.start();
   return true;
 }
 
+function logPlay(name, played, extra = '') {
+  const suffix = extra ? ` ${extra}` : '';
+  console.log(`[audio] ${name}()${suffix}${played ? '' : ' (buffer not ready — preloadAudio() may not have run yet)'}`);
+}
+
 export function playDropSound() {
-  const played = play('drop', { rate: 1, gain: 0.7 });
-  console.log(`[audio] playDropSound()${played ? '' : ' (buffer not ready — preloadAudio() may not have run yet)'}`);
+  logPlay('playDropSound', play('drop', { rate: 1 }));
 }
 
 // tier = the resulting merged tier index (1..MAX_TIER_INDEX).
@@ -124,11 +125,40 @@ export function playMergeSound(tier) {
   const minTier = 1; // tier 0 is never a merge result, only a drop
   const t = Math.max(0, Math.min(1, (tier - minTier) / (MAX_TIER_INDEX - minTier)));
   const rate = lerp(1.4, 0.65, t);
-  const played = play('merge', { rate, gain: 0.85 });
-  console.log(`[audio] playMergeSound(tier=${tier}) -> pitch rate ${rate.toFixed(2)}${played ? '' : ' (buffer not ready yet)'}`);
+  const played = play('merge', { rate });
+  logPlay('playMergeSound', played, `(tier=${tier}, pitch rate ${rate.toFixed(2)})`);
 }
 
 export function playGameOverSound() {
-  const played = play('gameOver', { rate: 1, gain: 0.9 });
-  console.log(`[audio] playGameOverSound()${played ? '' : ' (buffer not ready yet)'}`);
+  logPlay('playGameOverSound', play('gameOver', { rate: 1 }));
+}
+
+// --- New interactive SFX ---------------------------------------------------
+
+// Short UI tap — menu buttons, settings, leaderboard, level cards.
+export function playClickSound() {
+  logPlay('playClickSound', play('click', { rate: 1 }));
+}
+
+// Fires once per fruit on its first real impact (see js/game.js's landing
+// squash detection) — kept quiet by default (see SOUND_GAIN) since it can
+// fire often.
+export function playLandSound() {
+  logPlay('playLandSound', play('land', { rate: 1 }));
+}
+
+export function playLevelUpSound() {
+  logPlay('playLevelUpSound', play('levelUp', { rate: 1 }));
+}
+
+// comboCount nudges the pitch up slightly per step, so a long chain
+// audibly escalates rather than repeating identically.
+export function playComboSound(comboCount) {
+  const rate = Math.min(1.6, 1 + (comboCount - 2) * 0.08);
+  const played = play('combo', { rate });
+  logPlay('playComboSound', played, `(combo=${comboCount}, pitch rate ${rate.toFixed(2)})`);
+}
+
+export function playUnlockSound() {
+  logPlay('playUnlockSound', play('unlock', { rate: 1 }));
 }
