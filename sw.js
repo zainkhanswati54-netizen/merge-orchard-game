@@ -1,7 +1,7 @@
 // Minimal "app shell" cache. Not required for the game to work, but lets it
 // keep running if a player loses signal after the first load (handy for a
 // quick mobile play session).
-const CACHE_NAME = 'merge-orchard-v4';
+const CACHE_NAME = 'merge-orchard-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -34,6 +34,7 @@ const ASSETS = [
   './assets/sounds/levelup.ogg',
   './assets/sounds/combo.ogg',
   './assets/sounds/unlock.ogg',
+  './assets/sounds/heartbeat.ogg',
   './assets/sounds/music_loop.ogg',
   './manifest.json',
   './icons/icon.svg',

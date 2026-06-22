@@ -45,6 +45,11 @@ export const CONFIG = {
   // one combo; each step bumps the multiplier and grows the on-screen text.
   COMBO_WINDOW_MS: 700,
 
+  // Fear escalation — a heartbeat sound + red vignette intensify the longer
+  // a fruit sits dangerously above the line, peaking right before game over.
+  HEARTBEAT_INTERVAL_MAX_MS: 850,  // beat pace at the very start of danger
+  HEARTBEAT_INTERVAL_MIN_MS: 260,  // beat pace right before game over (fastest)
+
   STORAGE_KEY_HIGHSCORE: 'suika_merge_high_score',
   STORAGE_KEY_SETTINGS: 'suika_merge_settings',
   STORAGE_KEY_LEADERBOARD: 'suika_merge_leaderboard',

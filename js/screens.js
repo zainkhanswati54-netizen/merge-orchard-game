@@ -106,11 +106,11 @@ function renderLevelSelect(onSelect) {
   }
 }
 
-// Wires every button/slider across the menu, level select, both overlays,
-// and the in-game HUD's settings icon. The on* hooks are small callbacks
-// back into main.js, which is the only place that knows whether a Game
-// instance exists yet.
-export function initScreens({ onSelectLevel, onPauseGame, onResumeGame } = {}) {
+// Wires every button/slider across the menu, level select, pause menu, both
+// overlays, and the in-game HUD's pause icon. The on* hooks are small
+// callbacks back into main.js, which is the only place that knows whether a
+// Game instance exists yet.
+export function initScreens({ onSelectLevel, onPauseGame, onResumeGame, onRestartGame } = {}) {
   document.getElementById('menu-play-btn')?.addEventListener('click', () => {
     playClickSound();
     renderLevelSelect(onSelectLevel);
@@ -133,18 +133,53 @@ export function initScreens({ onSelectLevel, onPauseGame, onResumeGame } = {}) {
     openOverlay('leaderboard-overlay');
   });
 
-  // In-HUD settings icon — only relevant once a game is actually running,
-  // so it also pauses play while the overlay is open.
-  document.getElementById('hud-settings-btn')?.addEventListener('click', () => {
+  // In-HUD pause icon — opens the full Pause Menu (Resume / Restart /
+  // Settings / Home), and genuinely freezes the game underneath while it's
+  // open, not just visually.
+  document.getElementById('hud-pause-btn')?.addEventListener('click', () => {
     playClickSound();
     onPauseGame?.();
+    openOverlay('pause-overlay');
+  });
+
+  document.getElementById('pause-resume-btn')?.addEventListener('click', () => {
+    playClickSound();
+    closeOverlay('pause-overlay');
+    onResumeGame?.();
+  });
+
+  document.getElementById('pause-restart-btn')?.addEventListener('click', () => {
+    playClickSound();
+    closeOverlay('pause-overlay');
+    onRestartGame?.(); // Game#restart() also clears the paused flag itself
+  });
+
+  // Settings opens *on top of* the pause menu (which stays open underneath)
+  // rather than replacing it, so "Done" naturally returns to the pause menu
+  // instead of accidentally resuming play.
+  document.getElementById('pause-settings-btn')?.addEventListener('click', () => {
+    playClickSound();
     openOverlay('settings-overlay');
+  });
+
+  document.getElementById('pause-home-btn')?.addEventListener('click', () => {
+    playClickSound();
+    closeOverlay('pause-overlay');
+    showScreen('menu');
+    // Deliberately left paused — there's no "continue" path back into this
+    // run from the main menu, so the run is simply abandoned in the
+    // background (cheap: it only keeps rendering, no physics/timers).
   });
 
   document.getElementById('settings-close-btn')?.addEventListener('click', () => {
     playClickSound();
     closeOverlay('settings-overlay');
-    onResumeGame?.();
+    const pauseMenuOpen = document.getElementById('pause-overlay')?.classList.contains('visible');
+    if (!pauseMenuOpen) {
+      onResumeGame?.();
+    }
+    // If the pause menu is open underneath, leave the game paused — the
+    // player is still navigating the pause menu, not back in play.
   });
 
   document.getElementById('leaderboard-close-btn')?.addEventListener('click', () => {

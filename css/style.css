@@ -543,6 +543,30 @@ body {
   50% { filter: brightness(1.6); }
 }
 
+/* Full-stage "fear" glow — the dashed line alone is easy to miss mid-action;
+   this is not. Opacity is driven continuously from JS (UI#setDangerProgress)
+   as the danger timer builds, and the pulse animation only kicks in once
+   there's real danger (progress > ~0), so it's inert the rest of the time. */
+.danger-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms linear;
+  background:
+    radial-gradient(ellipse at center, transparent 55%, rgba(255, 30, 30, 0.55) 100%);
+  mix-blend-mode: normal;
+}
+
+.danger-vignette-active {
+  animation: dangerVignettePulse 600ms ease-in-out infinite;
+}
+
+@keyframes dangerVignettePulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.45); }
+}
+
 /* ---------- On-screen controls (touch / Android) ---------- */
 
 .controls {
@@ -729,6 +753,30 @@ body {
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* Stacked pause-menu actions (Restart / Settings / Home) — solid, tappable
+   buttons rather than text links, since there are several of them and they
+   carry real navigational weight (unlike the single "Change Orchard" link
+   on the Game Over modal, which intentionally stays understated). */
+.modal-secondary-action-btn {
+  margin-top: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.06);
+  color: var(--text-plum);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 15px;
+  padding: 13px 0;
+  cursor: pointer;
+  transition: transform 80ms ease, background 80ms ease;
+}
+
+.modal-secondary-action-btn:active {
+  transform: translateY(2px);
+  background: rgba(0,0,0,0.1);
 }
 
 /* ---------- Settings overlay ---------- */

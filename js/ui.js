@@ -14,6 +14,7 @@ export class UI {
     this.newHighBadgeEl = document.getElementById('new-high-badge');
     this.restartBtn = document.getElementById('restart-btn');
     this.dangerLineEl = document.getElementById('danger-indicator');
+    this.dangerVignetteEl = document.getElementById('danger-vignette');
     this.nextSwatchEl = document.getElementById('next-swatch');
     this.nextNameEl = document.getElementById('next-name');
 
@@ -92,9 +93,15 @@ export class UI {
   }
 
   // Call continuously while a stack is sitting in the danger zone so the
-  // line can pulse and warn the player before the 3-second timer expires.
+  // line can pulse and warn the player before the danger timer expires.
+  // Also drives the full-stage red "fear" vignette — the line alone is
+  // easy to miss mid-action, the vignette is not.
   setDangerProgress(progress01) {
     this.dangerLineEl.style.opacity = String(Math.min(1, progress01 * 1.3));
+    if (this.dangerVignetteEl) {
+      this.dangerVignetteEl.style.opacity = String(Math.min(0.85, progress01 * progress01 * 1.1));
+      this.dangerVignetteEl.classList.toggle('danger-vignette-active', progress01 > 0.02);
+    }
   }
 
   // Persists a beaten high score the instant it happens during play — not

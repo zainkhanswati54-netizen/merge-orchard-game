@@ -7,14 +7,14 @@ import { UI } from './ui.js';
 import { InputController } from './input.js';
 import {
   playDropSound, playMergeSound, playGameOverSound, preloadAudio, startMusic,
-  playLandSound, playLevelUpSound, playComboSound, playUnlockSound,
+  playLandSound, playLevelUpSound, playComboSound, playUnlockSound, playHeartbeatSound,
 } from './audio.js';
 import { drawFruit } from './fruitRenderer.js';
 import { recordScore } from './leaderboard.js';
 import { addXP, onXPChange } from './xp.js';
 import { THEMES, isThemeUnlocked } from './themes.js';
 import { FloatingTextSystem } from './floatingText.js';
-import { clamp, squishPopScale, landingSquashScale } from './utils.js';
+import { clamp, lerp, squishPopScale, landingSquashScale } from './utils.js';
 
 const BIG_MERGE_CALLOUTS = ['SPLASH!', 'JUICY!', 'POW!', 'NICE!'];
 
@@ -39,10 +39,11 @@ export class Game {
     this.popTweens = new Map();        // itemId -> spawnTimestamp (merge/drop pop-in)
     this.landingSquashes = new Map();  // itemId -> impactTimestamp (first-hit squash)
     this.consumedThisStep = new Set();
-    this.paused = false; // true while the in-game Settings overlay is open
+    this.paused = false; // true while the in-game Pause/Settings overlay is open
 
     this.comboCount = 0;
     this.lastMergeTime = 0;
+    this.lastHeartbeatTime = 0; // drives the accelerating danger heartbeat (see _updateDangerTimer)
 
     this._buildPhysicsForTheme(theme);
     this._resetState();
@@ -100,10 +101,12 @@ export class Game {
     this.nextDropAllowedAt = 0;
     this.comboCount = 0;
     this.lastMergeTime = 0;
+    this.lastHeartbeatTime = 0;
     this.currentTier = randomDroppableTier(this.droppableIndices);
     this.nextTier = randomDroppableTier(this.droppableIndices);
     this.ui.setScore(0);
     this.ui.setNextPreview(this.tiers[this.nextTier]);
+    this.ui.setDangerProgress(0);
     this.ui.hideGameOver();
   }
 
@@ -116,11 +119,13 @@ export class Game {
     this._buildPhysicsForTheme(theme || this.theme);
     this.popTweens.clear();
     this.landingSquashes.clear();
+    this.paused = false; // restarting from the pause menu must not leave the new run frozen
     this._resetState();
   }
 
-  // Used by the in-game Settings button: freezes physics/timers/score while
-  // the overlay is open, without losing any state, then picks back up.
+  // Used by the in-game Pause button: freezes physics/timers/score while
+  // the pause (or Settings) overlay is open, without losing any state, then
+  // picks back up exactly where it left off.
   pause() {
     this.paused = true;
   }
@@ -278,7 +283,21 @@ export class Game {
     }
 
     this.dangerTimer = dangerous ? this.dangerTimer + dtMs : 0;
-    this.ui.setDangerProgress(this.dangerTimer / CONFIG.DANGER_TIME_LIMIT_MS);
+    const progress = clamp(this.dangerTimer / CONFIG.DANGER_TIME_LIMIT_MS, 0, 1);
+    this.ui.setDangerProgress(progress);
+
+    // The "fear" beat: re-triggers faster and pitches up the closer the
+    // player is to actually losing — silent the instant the stack is no
+    // longer dangerous, so it never lingers past the moment of real risk.
+    if (dangerous) {
+      const interval = lerp(CONFIG.HEARTBEAT_INTERVAL_MAX_MS, CONFIG.HEARTBEAT_INTERVAL_MIN_MS, progress);
+      if (now - this.lastHeartbeatTime >= interval) {
+        this.lastHeartbeatTime = now;
+        playHeartbeatSound(progress);
+      }
+    } else {
+      this.lastHeartbeatTime = 0;
+    }
 
     if (this.dangerTimer >= CONFIG.DANGER_TIME_LIMIT_MS) {
       this._triggerGameOver();

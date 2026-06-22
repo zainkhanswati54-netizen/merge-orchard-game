@@ -162,3 +162,14 @@ export function playComboSound(comboCount) {
 export function playUnlockSound() {
   logPlay('playUnlockSound', play('unlock', { rate: 1 }));
 }
+
+// progress01 (0-1, how close to game over) nudges the pitch up slightly as
+// danger escalates, on top of game.js re-triggering it at a faster interval
+// — both effects compound into a believable "things are getting worse" cue.
+// Deliberately skips the usual console log (unlike the other one-shot SFX
+// above) since this can fire many times per second near the danger
+// threshold — logging every beat would just spam the console.
+export function playHeartbeatSound(progress01 = 0) {
+  const rate = 1 + Math.min(1, Math.max(0, progress01)) * 0.35;
+  play('heartbeat', { rate });
+}

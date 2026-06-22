@@ -16,6 +16,7 @@ export const SOUND_FILES = {
   levelUp: 'assets/sounds/levelup.ogg',
   combo: 'assets/sounds/combo.ogg',
   unlock: 'assets/sounds/unlock.ogg',
+  heartbeat: 'assets/sounds/heartbeat.ogg',
 };
 
 export const MUSIC_FILE = 'assets/sounds/music_loop.ogg';
@@ -32,4 +33,5 @@ export const SOUND_GAIN = {
   levelUp: 0.85,
   combo: 0.6,
   unlock: 0.95,
+  heartbeat: 0.65,
 };

@@ -38,6 +38,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     onSelectLevel: (themeId) => startGame(themeId),
     onPauseGame: () => game?.pause(),
     onResumeGame: () => game?.resume(),
+    onRestartGame: () => game?.restart(), // no theme arg = same orchard, fast retry from the pause menu
   });
 
   // Loading screen is visible by default in the HTML; this fills its

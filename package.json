@@ -4,6 +4,7 @@
   "private": true,
   "description": "A juicy physics fruit-merging game with progression, themes, and an automated Android build.",
   "scripts": {
+    "test": "node tests/run-all.js",
     "android:add": "cap add android",
     "android:sync": "cap copy android",
     "android:open": "cap open android"
@@ -13,6 +14,7 @@
     "@capacitor/android": "latest"
   },
   "devDependencies": {
-    "@capacitor/cli": "latest"
+    "@capacitor/cli": "latest",
+    "playwright": "latest"
   }
 }
