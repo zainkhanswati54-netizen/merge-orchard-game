@@ -8,59 +8,66 @@ export const CONFIG = {
 
   // Physics
   GRAVITY: 1.0,
-  RESTITUTION: 0.22,       // bounciness
+  RESTITUTION: 0.22,
   FRICTION: 0.25,
   FRICTION_AIR: 0.0015,
   FRICTION_STATIC: 0.4,
 
   // Dropper
   DROPPER_Y: 38,
-  DROPPER_MOVE_SPEED: 280, // px/sec for keyboard + on-screen buttons
+  DROPPER_MOVE_SPEED: 280,
   DROP_COOLDOWN_MS: 350,
 
-  // Only these tier indices can be dropped by the player.
-  // Higher tiers are earned exclusively through merging.
   DROPPABLE_TIER_INDICES: [0, 1, 2],
 
   // Danger / game-over line
   DANGER_LINE_Y: 92,
-  DANGER_TIME_LIMIT_MS: 2000, // a fruit resting above the line this long ends the game
-  DANGER_SETTLE_SPEED: 0.6, // bodies slower than this count as "stacked", not "flying through"
-  DANGER_GRACE_MS: 450,     // ignore a body for this long after it spawns (lets it fall past the line)
+  DANGER_TIME_LIMIT_MS: 2000,
+  DANGER_SETTLE_SPEED: 0.6,
+  DANGER_GRACE_MS: 450,
+
+  // Risk/Reward zone — merges above this Y get a 2x bonus
+  RISK_ZONE_Y: 180,
 
   // Juice
   SCREEN_SHAKE_DROP: 2.5,
   SCREEN_SHAKE_BASE_MERGE: 4,
   SCREEN_SHAKE_PER_TIER: 3.6,
-  SCREEN_SHAKE_BIG_MERGE_TIER: 3, // merges at/above this tier count as "massive" for shake+combo purposes
-  POP_TWEEN_MS: 320,        // covers both the pop (scale) and squish (juicy stretch) tween
+  SCREEN_SHAKE_BIG_MERGE_TIER: 3,
+  POP_TWEEN_MS: 320,
 
-  // Landing squash — a brief squash-and-stretch the moment a dropped fruit
-  // first hits something (floor, wall, or another fruit), separate from the
-  // merge spawn pop above.
   LANDING_SQUASH_MS: 220,
-  LANDING_MIN_IMPACT_SPEED: 1.8, // below this relative speed, don't bother squashing (too gentle to read)
+  LANDING_MIN_IMPACT_SPEED: 1.8,
 
-  // Combo system — merges chained within this window of each other count as
-  // one combo; each step bumps the multiplier and grows the on-screen text.
+  // Combo system
   COMBO_WINDOW_MS: 700,
+  COMBO_LEGENDARY_THRESHOLD: 10,
 
-  // Fear escalation — a heartbeat sound + red vignette intensify the longer
-  // a fruit sits dangerously above the line, peaking right before game over.
-  HEARTBEAT_INTERVAL_MAX_MS: 850,  // beat pace at the very start of danger
-  HEARTBEAT_INTERVAL_MIN_MS: 260,  // beat pace right before game over (fastest)
+  // Fear escalation
+  HEARTBEAT_INTERVAL_MAX_MS: 850,
+  HEARTBEAT_INTERVAL_MIN_MS: 260,
 
-  STORAGE_KEY_HIGHSCORE: 'suika_merge_high_score',
-  STORAGE_KEY_SETTINGS: 'suika_merge_settings',
-  STORAGE_KEY_LEADERBOARD: 'suika_merge_leaderboard',
-  STORAGE_KEY_XP: 'suika_merge_xp',
+  // Storage keys
+  STORAGE_KEY_HIGHSCORE:      'suika_merge_high_score',
+  STORAGE_KEY_SETTINGS:       'suika_merge_settings',
+  STORAGE_KEY_LEADERBOARD:    'suika_merge_leaderboard',
+  STORAGE_KEY_XP:             'suika_merge_xp',
+  STORAGE_KEY_COINS:          'suika_merge_coins',
+  STORAGE_KEY_STATS:          'suika_merge_stats',
+  STORAGE_KEY_ACHIEVEMENTS:   'suika_merge_achievements',
+  STORAGE_KEY_DAILY_MISSIONS: 'suika_merge_daily_missions',
+  STORAGE_KEY_POWERS:         'suika_merge_powers',
+  STORAGE_KEY_PEAK_Y:         'suika_merge_peak_y',
   LEADERBOARD_SIZE: 5,
 
-  // XP / leveling — requirement grows geometrically per level, see js/xp.js.
+  // XP / leveling
   XP_BASE_PER_LEVEL: 100,
   XP_GROWTH_RATE: 1.15,
 
-  // Loading screen — a floor on how long it stays up, so it reads as a real
-  // loading screen even when everything technically finishes loading instantly.
-  MIN_LOADING_SCREEN_MS: 900,
+  // Powers
+  FREEZE_DURATION_MS: 6000,
+  MAGNET_DURATION_MS: 5000,
+
+  // Loading screen
+  MIN_LOADING_SCREEN_MS: 200,
 };

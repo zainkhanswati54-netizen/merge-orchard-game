@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-<title>Merge Orchard — Physics Fruit Merging Game</title>
+<title>Merge Orchard 2.0 — Physics Fruit Merging Game</title>
 <meta name="description" content="A juicy physics merging puzzle. Drop fruit, merge matching tiers, level up, and unlock new orchards." />
 <meta name="theme-color" content="#1B1530" />
 <link rel="manifest" href="manifest.json" />
@@ -33,26 +33,42 @@
 
 <!-- ======================= MAIN MENU ======================= -->
 <div class="screen" id="main-menu">
-  <!-- Purely decorative floating fruit behind the menu content; timings
-       randomized per-element in screens.js so they drift independently. -->
   <div class="menu-bg-fruits" aria-hidden="true">
-    <span class="bg-fruit" style="left:8%; top:18%;">🍒</span>
+    <span class="bg-fruit" style="left:8%;  top:18%;">🍒</span>
     <span class="bg-fruit" style="left:78%; top:12%;">🍓</span>
     <span class="bg-fruit" style="left:15%; top:68%;">🍊</span>
     <span class="bg-fruit" style="left:85%; top:62%;">🍉</span>
     <span class="bg-fruit" style="left:50%; top:8%;">🍎</span>
     <span class="bg-fruit" style="left:65%; top:80%;">🥭</span>
+    <span class="bg-fruit" style="left:32%; top:45%;">🍇</span>
+    <span class="bg-fruit" style="left:90%; top:35%;">🌟</span>
   </div>
 
   <div class="brand-block">
     <img class="brand-icon" src="icons/icon.svg" alt="" width="84" height="84" />
     <h1 class="brand-title">Merge Orchard</h1>
-    <p class="brand-tagline">Drop. Merge. Chase the high score.</p>
+    <p class="brand-tagline">Drop. Merge. Build the ultimate orchard.</p>
+    <div id="total-coins-display" class="menu-coins-display">🪙 0</div>
+    <div id="streak-display" class="menu-streak-display" style="display:none;"></div>
   </div>
+
   <nav class="menu-actions">
     <button class="menu-btn menu-btn-primary" id="menu-play-btn">▶ Play</button>
-    <button class="menu-btn" id="menu-settings-btn">⚙ Settings</button>
-    <button class="menu-btn" id="menu-leaderboard-btn">🏆 Leaderboard</button>
+    <div class="menu-row">
+      <button class="menu-btn menu-btn-half" id="menu-missions-btn">
+        📋 Missions
+        <span class="missions-badge" id="missions-badge" style="display:none;">0</span>
+      </button>
+      <button class="menu-btn menu-btn-half" id="menu-achievements-btn">🏆 Achievements</button>
+    </div>
+    <div class="menu-row">
+      <button class="menu-btn menu-btn-half" id="menu-shop-btn">🛒 Shop</button>
+      <button class="menu-btn menu-btn-half" id="menu-leaderboard-btn">📊 Scores</button>
+    </div>
+    <div class="menu-row">
+      <button class="menu-btn menu-btn-half" id="menu-guide-btn">🍎 Fruit Guide</button>
+      <button class="menu-btn menu-btn-half" id="menu-settings-btn">⚙ Settings</button>
+    </div>
   </nav>
   <p class="menu-footer">Drag / arrow keys to aim · tap, click, or space to drop</p>
 </div>
@@ -70,7 +86,7 @@
 <div class="screen" id="game-screen">
   <div class="app-layout">
 
-    <!-- XP bar — full width, sits above the HUD/jar regardless of layout -->
+    <!-- XP bar -->
     <div class="xp-bar-wrap" id="xp-bar-wrap">
       <div class="xp-bar-labels">
         <span id="xp-level-label">Lv 1</span>
@@ -99,6 +115,21 @@
         <div class="hud-label">Best</div>
         <div class="hud-value" id="highscore-value">0</div>
       </div>
+
+      <div class="hud-card hud-coins-card">
+        <div class="hud-label">🪙 Coins</div>
+        <div class="hud-value hud-coins" id="hud-coins-value">0</div>
+      </div>
+    </div>
+
+    <!-- Merge chain evolution preview -->
+    <div class="evolution-panel" id="evolution-panel" aria-label="Merge chain preview">
+      <!-- populated by ui.js -->
+    </div>
+
+    <!-- Power buttons row -->
+    <div class="powers-row" id="power-buttons">
+      <!-- populated by ui.js -->
     </div>
 
     <div class="play-column">
@@ -135,17 +166,14 @@
 <div class="modal-overlay" id="settings-overlay">
   <div class="modal-card">
     <h2>Settings</h2>
-
     <label class="slider-row">
       <span class="slider-label">Sound Effects</span>
       <input type="range" min="0" max="100" value="80" id="sfx-volume-slider" class="volume-slider" />
     </label>
-
     <label class="slider-row">
       <span class="slider-label">Music</span>
       <input type="range" min="0" max="100" value="35" id="music-volume-slider" class="volume-slider" />
     </label>
-
     <button class="modal-primary-btn" id="settings-close-btn">Done</button>
   </div>
 </div>
@@ -160,23 +188,99 @@
   </div>
 </div>
 
+<!-- ======================= DAILY MISSIONS OVERLAY ======================= -->
+<div class="modal-overlay" id="missions-overlay">
+  <div class="modal-card modal-card-tall">
+    <h2>📋 Daily Missions</h2>
+    <p class="leaderboard-subtitle">Resets at midnight · Claim rewards below</p>
+    <div id="missions-list"></div>
+    <button class="modal-primary-btn" id="missions-close-btn">Close</button>
+  </div>
+</div>
+
+<!-- ======================= ACHIEVEMENTS OVERLAY ======================= -->
+<div class="modal-overlay" id="achievements-overlay">
+  <div class="modal-card modal-card-tall">
+    <h2>🏆 Achievements</h2>
+    <p class="leaderboard-subtitle">Unlock by playing!</p>
+    <div id="achievements-list" class="achievements-list"></div>
+    <button class="modal-primary-btn" id="achievements-close-btn">Close</button>
+  </div>
+</div>
+
+<!-- ======================= POWER SHOP OVERLAY ======================= -->
+<div class="modal-overlay" id="shop-overlay">
+  <div class="modal-card modal-card-tall">
+    <h2>🛒 Power Shop</h2>
+    <p class="leaderboard-subtitle">Spend coins to buy powers</p>
+    <div id="shop-coins-display" class="shop-coins-display">🪙 0</div>
+    <div id="shop-list" class="shop-list"></div>
+    <button class="modal-primary-btn" id="shop-close-btn">Done</button>
+  </div>
+</div>
+
 <!-- ======================= GAME OVER MODAL ======================= -->
 <div class="modal-overlay" id="game-over">
   <div class="modal-card modal-card-gameover">
     <canvas class="confetti-canvas" id="gameover-confetti" aria-hidden="true"></canvas>
 
     <h2>Game Over</h2>
-    <div class="modal-stat">
-      <span class="hud-label">Final Score</span>
-      <span class="hud-value hud-value-tally" id="final-score">0</span>
+
+    <!-- NEW RECORD banner — hidden until showGameOver fires the sequence -->
+    <div id="new-record-banner" class="new-record-banner" aria-live="polite"></div>
+
+    <!-- Rank display -->
+    <div class="rank-display">
+      <span class="rank-emoji" id="go-rank">🥉</span>
+      <span class="rank-name" id="go-rank-name">Bronze</span>
     </div>
-    <div class="modal-stat">
-      <span class="hud-label">Personal Best</span>
-      <span class="hud-value" id="final-highscore">0</span>
-      <div><span class="badge badge-celebrate" id="new-high-badge" style="display:none;">🎉 New Personal Best! 🎉</span></div>
+    <div class="rank-next" id="go-next-rank"></div>
+
+    <!-- Score stats -->
+    <div class="go-stats-grid">
+      <div class="modal-stat go-stat">
+        <span class="hud-label">Final Score</span>
+        <span class="hud-value hud-value-tally" id="final-score">0</span>
+      </div>
+      <div class="modal-stat go-stat">
+        <span class="hud-label">Personal Best</span>
+        <span class="hud-value" id="final-highscore">0</span>
+        <div><span class="badge badge-celebrate" id="new-high-badge" style="display:none;">🎉 New Best!</span></div>
+      </div>
     </div>
-    <button class="modal-primary-btn" id="restart-btn">Play Again</button>
+
+    <!-- Session stats -->
+    <div class="session-stats">
+      <div class="session-stat">
+        <span class="ss-label">Merges</span>
+        <span class="ss-val" id="go-merges">0</span>
+      </div>
+      <div class="session-stat">
+        <span class="ss-label">Best Combo</span>
+        <span class="ss-val" id="go-combo">x0</span>
+      </div>
+      <div class="session-stat">
+        <span class="ss-label">🪙 Coins</span>
+        <span class="ss-val" id="go-coins">0</span>
+      </div>
+      <div class="session-stat">
+        <span class="ss-label">⭐ XP</span>
+        <span class="ss-val" id="go-xp">0</span>
+      </div>
+    </div>
+
+    <button class="modal-primary-btn" id="restart-btn">▶ Play Again</button>
     <button class="modal-secondary-btn" id="game-over-change-level-btn">Change Orchard</button>
+  </div>
+</div>
+
+<!-- ======================= FRUIT ENCYCLOPEDIA OVERLAY ======================= -->
+<div class="modal-overlay" id="encyclopedia-overlay">
+  <div class="modal-card modal-card-tall enc-modal-card">
+    <h2>🍎 Fruit Guide</h2>
+    <p class="leaderboard-subtitle">Every orchard · every tier · merge chains</p>
+    <div id="encyclopedia-list" class="enc-list"></div>
+    <button class="modal-primary-btn" id="encyclopedia-close-btn">Close</button>
   </div>
 </div>
 

@@ -8,15 +8,14 @@
   --accent-coral-dark: #E14F40;
   --accent-gold: #FFC857;
   --danger-red: #FF4D4D;
+  --accent-blue: #4FC3F7;
+  --accent-purple: #9B59B6;
 
   --font-display: 'Baloo 2', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html, body {
   margin: 0;
@@ -26,9 +25,6 @@ html, body {
   color: var(--text-plum);
   overscroll-behavior: none;
   user-select: none;
-  /* Mobile web view / PWA: the whole page IS the game, so block every
-     browser-native gesture (swipe-to-go-back, pull-to-refresh, pinch-zoom,
-     double-tap-zoom) that could otherwise hijack a finger drag mid-game. */
   touch-action: none;
   -webkit-touch-callout: none;
 }
@@ -43,8 +39,7 @@ body {
 }
 
 /* =====================================================================
-   SCREENS — loading / main menu / game. Exactly one is ever visible;
-   screens.js toggles the "visible" class.
+   SCREENS
    ===================================================================== */
 
 .screen {
@@ -56,11 +51,9 @@ body {
   gap: 18px;
 }
 
-.screen.visible {
-  display: flex;
-}
+.screen.visible { display: flex; }
 
-/* ---------- shared brand block (loading screen + main menu) ---------- */
+/* ---------- shared brand block ---------- */
 
 .brand-block {
   display: flex;
@@ -77,7 +70,7 @@ body {
 
 @keyframes brandFloat {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  50%       { transform: translateY(-6px); }
 }
 
 .brand-title {
@@ -95,12 +88,67 @@ body {
   margin: 0;
 }
 
+.menu-coins-display {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  margin-top: 4px;
+  background: rgba(255,200,87,0.12);
+  border-radius: 999px;
+  padding: 4px 16px;
+}
+
+.menu-streak-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: rgba(255,107,53,0.15);
+  color: #fff;
+  animation: streak-pop 400ms cubic-bezier(0.34,1.56,0.64,1) both;
+}
+
+.streak-flame { font-size: 17px; }
+.streak-count { color: #FF6B35; }
+.streak-mult  { color: var(--accent-gold); font-size: 11px; opacity: 0.9; }
+
+@keyframes streak-pop {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* New-streak toast */
+.streak-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-60px);
+  background: linear-gradient(135deg, #FF6B35, #FFC857);
+  color: #1a1040;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  padding: 10px 24px;
+  border-radius: 999px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+  z-index: 9999;
+  pointer-events: none;
+  transition: transform 380ms cubic-bezier(0.34,1.56,0.64,1), opacity 300ms ease;
+  opacity: 0;
+}
+.streak-toast.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
 /* ---------- loading screen ---------- */
 
-#loading-screen {
-  justify-content: center;
-  min-height: 60vh;
-}
+#loading-screen { justify-content: center; min-height: 60vh; }
 
 .loading-bar-track {
   width: 100%;
@@ -152,32 +200,28 @@ body {
   animation-name: bgFruitFloat;
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
-  /* animation-duration and animation-delay are randomized per-element in
-     screens.js, so the fruit drift independently rather than in lockstep */
 }
 
 @keyframes bgFruitFloat {
   0%, 100% { transform: translateY(0) rotate(-4deg); }
-  50% { transform: translateY(-22px) rotate(4deg); }
+  50%       { transform: translateY(-22px) rotate(4deg); }
 }
 
-.brand-block {
-  position: relative;
-  z-index: 1;
-}
-
+.brand-block { position: relative; z-index: 1; }
 .menu-actions {
   position: relative;
   z-index: 1;
-}
-
-.menu-actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  max-width: 280px;
+  max-width: 300px;
   margin-top: 10px;
+}
+
+.menu-row {
+  display: flex;
+  gap: 10px;
 }
 
 .menu-btn {
@@ -186,11 +230,13 @@ body {
   background: var(--surface-cream);
   color: var(--text-plum);
   font-family: var(--font-display);
-  font-size: 18px;
-  padding: 16px 0;
+  font-size: 16px;
+  padding: 14px 0;
   box-shadow: 0 4px 0 rgba(0,0,0,0.18);
   cursor: pointer;
   transition: transform 80ms ease, box-shadow 80ms ease;
+  position: relative;
+  width: 100%;
 }
 
 .menu-btn:active {
@@ -205,11 +251,30 @@ body {
   box-shadow: 0 5px 0 var(--accent-coral-dark);
 }
 
+.menu-btn-half { flex: 1; font-size: 14px; }
+
 .menu-footer {
   font-size: 12px;
   color: rgba(255,255,255,0.35);
   text-align: center;
   margin-top: 4px;
+}
+
+.missions-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--danger-red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-body);
 }
 
 /* =====================================================================
@@ -220,6 +285,8 @@ body {
   align-items: stretch;
   min-height: 70vh;
   padding-top: 4px;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .level-select-header {
@@ -247,10 +314,55 @@ body {
   margin: 0;
 }
 
+/* Weather picker strip */
+#weather-picker-section {
+  margin-bottom: 4px;
+}
+
+.weather-picker-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  margin: 0 0 8px 2px;
+}
+
+.weather-picker {
+  display: flex;
+  gap: 8px;
+}
+
+.weather-opt-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  border: 2px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.6);
+  cursor: pointer;
+  transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
+}
+
+.weather-opt-btn:active { transform: scale(0.95); }
+
+.weather-opt-btn.is-selected {
+  border-color: var(--accent-orange, #FF6B35);
+  background: rgba(255,107,53,0.18);
+  color: #fff;
+}
+
+.weather-opt-icon { font-size: 22px; line-height: 1; }
+.weather-opt-label { font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+
 .level-card-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   margin-top: 16px;
 }
 
@@ -263,16 +375,13 @@ body {
   border: none;
   border-radius: 18px;
   background: var(--surface-cream);
-  padding: 18px 20px;
+  padding: 16px 18px;
   cursor: pointer;
   box-shadow: 0 5px 0 rgba(0,0,0,0.18);
   transition: transform 80ms ease, box-shadow 80ms ease;
 }
 
-.level-card:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 rgba(0,0,0,0.18);
-}
+.level-card:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
 
 .level-card.is-locked {
   background: rgba(255,255,255,0.08);
@@ -280,41 +389,30 @@ body {
   box-shadow: none;
 }
 
-.level-card.is-locked:active {
-  transform: none;
-}
+.level-card.is-locked:active { transform: none; }
 
 .level-card-name {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--text-plum);
 }
 
-.level-card.is-locked .level-card-name {
-  color: rgba(255,255,255,0.65);
-}
+.level-card.is-locked .level-card-name { color: rgba(255,255,255,0.65); }
 
 .level-card-desc {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-plum-soft);
   margin-top: 2px;
   max-width: 220px;
 }
 
-.level-card.is-locked .level-card-desc {
-  color: rgba(255,255,255,0.4);
-}
+.level-card.is-locked .level-card-desc { color: rgba(255,255,255,0.4); }
 
-.level-card-dots {
-  display: flex;
-  gap: 5px;
-  margin-top: 8px;
-}
+.level-card-dots { display: flex; gap: 5px; margin-top: 6px; }
 
 .level-card-dot {
-  width: 11px;
-  height: 11px;
+  width: 11px; height: 11px;
   border-radius: 50%;
   display: inline-block;
   box-shadow: inset 0 -2px 3px rgba(0,0,0,0.25);
@@ -336,24 +434,19 @@ body {
   80% { transform: translateX(3px); }
 }
 
-.level-card.shake {
-  animation: cardShake 320ms ease-in-out;
-}
+.level-card.shake { animation: cardShake 320ms ease-in-out; }
 
 /* =====================================================================
-   GAME SCREEN — side-panel HUD next to the jar on roomy screens,
-   stacked above it on narrow mobile screens (the common case).
+   GAME SCREEN
    ===================================================================== */
 
-#game-screen {
-  max-width: 760px;
-}
+#game-screen { max-width: 760px; }
 
 .app-layout {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 /* ---------- XP bar ---------- */
@@ -402,27 +495,24 @@ body {
   100% { box-shadow: 0 4px 0 rgba(0,0,0,0.18), 0 0 0 0 rgba(255,200,87,0); }
 }
 
-.xp-bar-wrap.level-up-flash {
-  animation: levelUpFlash 650ms ease-out;
-}
-
+.xp-bar-wrap.level-up-flash { animation: levelUpFlash 650ms ease-out; }
 .xp-bar-wrap.level-up-flash .xp-bar-fill {
   background: linear-gradient(90deg, var(--accent-gold), var(--accent-coral));
 }
 
+/* ---------- HUD panel ---------- */
+
 .hud-panel {
   display: flex;
   flex-direction: row;
-  gap: 10px;
+  gap: 8px;
   position: relative;
 }
 
 .hud-icon-btn {
   position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 30px;
-  height: 30px;
+  top: -2px; right: -2px;
+  width: 30px; height: 30px;
   border-radius: 50%;
   border: none;
   background: rgba(255,255,255,0.12);
@@ -436,12 +526,12 @@ body {
   flex: 1;
   background: var(--surface-cream);
   border-radius: 16px;
-  padding: 10px 16px;
+  padding: 8px 12px;
   box-shadow: 0 4px 0 rgba(0,0,0,0.18);
 }
 
 .hud-label {
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-plum-soft);
@@ -450,10 +540,17 @@ body {
 
 .hud-value {
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1.1;
   color: var(--accent-coral-dark);
   font-weight: 700;
+}
+
+.hud-coins-card { flex: 0 0 auto; }
+
+.hud-coins {
+  font-size: 20px;
+  color: #C8860A;
 }
 
 .hud-next {
@@ -466,8 +563,7 @@ body {
 }
 
 .next-swatch {
-  width: 28px;
-  height: 28px;
+  width: 28px; height: 28px;
   border-radius: 50%;
   background: #D7263D;
   box-shadow: inset 0 -3px 5px rgba(0,0,0,0.25), 0 2px 0 rgba(0,0,0,0.18);
@@ -475,47 +571,159 @@ body {
 }
 
 .next-name {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   color: var(--text-plum-soft);
   text-align: center;
   white-space: nowrap;
 }
 
-.play-column {
+/* ---------- Power buttons ---------- */
+
+/* ---- Merge chain evolution preview ---- */
+.evolution-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 8px 12px;
+  min-height: 54px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.evolution-panel::-webkit-scrollbar { display: none; }
+
+.evo-step {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  flex: 1;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
 }
 
-/* Roomier screens (tablet/desktop testing in a browser window): HUD
-   becomes a true side panel running down the left of the jar. */
-@media (min-width: 640px) {
-  .app-layout {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-  .hud-panel {
+.evo-orb {
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: box-shadow 200ms ease;
+}
+
+.evo-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.75);
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  max-width: 52px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.evo-pts {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  opacity: 0.8;
+}
+
+.evo-current .evo-label {
+  color: #fff;
+  font-size: 10px;
+}
+
+.evo-arrow {
+  color: rgba(255,255,255,0.28);
+  font-size: 18px;
+  line-height: 1;
+  flex: 0 0 auto;
+  margin-top: -8px; /* align with orb centers */
+}
+
+.evo-max {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--accent-gold);
+  letter-spacing: 0.06em;
+}
+
+/* Wider layout: panel goes in the sidebar */
+@media (min-width: 520px) {
+  .evolution-panel {
     flex-direction: column;
-    width: 150px;
-    flex: 0 0 150px;
-  }
-  .hud-next {
-    flex-direction: row;
     justify-content: flex-start;
-    gap: 10px;
+    padding: 10px 8px;
+    gap: 6px;
   }
+  .evo-step { flex-direction: row; gap: 8px; }
+  .evo-label { max-width: 72px; font-size: 10px; }
+  .evo-arrow {
+    width: 100%;
+    text-align: center;
+    margin-top: 0;
+    transform: rotate(90deg);
+  }
+}
+
+.powers-row {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.power-btn {
+  flex: 1;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-radius: 14px;
+  background: var(--surface-cream);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+  gap: 2px;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.18);
+  transition: transform 80ms ease, box-shadow 80ms ease, opacity 150ms ease;
+  min-height: 52px;
+}
+
+.power-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.18);
+}
+
+.power-btn-empty {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.power-emoji { font-size: 20px; line-height: 1; }
+
+.power-count {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-body);
+  color: var(--text-plum-soft);
 }
 
 /* ---------- Game stage ---------- */
+
+.play-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
 
 .stage {
   position: relative;
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-  touch-action: none; /* dragging to aim must never trigger a page gesture */
+  touch-action: none;
 }
 
 #game-canvas {
@@ -527,12 +735,11 @@ body {
 
 .danger-indicator {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 16.4%; /* matches CONFIG.DANGER_LINE_Y / CONFIG.BOX_HEIGHT */
+  left: 0; right: 0;
+  top: 16.4%;
   height: 2px;
   background: repeating-linear-gradient(90deg, var(--danger-red) 0 8px, transparent 8px 16px);
-  opacity: 0.32; /* always faintly visible, even when not in danger, so players know where it is */
+  opacity: 0.32;
   transition: opacity 120ms linear;
   pointer-events: none;
   animation: dangerPulse 700ms ease-in-out infinite;
@@ -540,40 +747,31 @@ body {
 
 @keyframes dangerPulse {
   0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.6); }
+  50%       { filter: brightness(1.6); }
 }
 
-/* Full-stage "fear" glow — the dashed line alone is easy to miss mid-action;
-   this is not. Opacity is driven continuously from JS (UI#setDangerProgress)
-   as the danger timer builds, and the pulse animation only kicks in once
-   there's real danger (progress > ~0), so it's inert the rest of the time. */
 .danger-vignette {
   position: absolute;
   inset: 0;
   pointer-events: none;
   opacity: 0;
   transition: opacity 150ms linear;
-  background:
-    radial-gradient(ellipse at center, transparent 55%, rgba(255, 30, 30, 0.55) 100%);
-  mix-blend-mode: normal;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(255, 30, 30, 0.55) 100%);
 }
 
-.danger-vignette-active {
-  animation: dangerVignettePulse 600ms ease-in-out infinite;
-}
+.danger-vignette-active { animation: dangerVignettePulse 600ms ease-in-out infinite; }
 
 @keyframes dangerVignettePulse {
   0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.45); }
+  50%       { filter: brightness(1.45); }
 }
 
-/* ---------- On-screen controls (touch / Android) ---------- */
+/* ---------- Controls ---------- */
 
 .controls {
   display: flex;
   align-items: center;
   gap: 10px;
-  /* keeps the buttons clear of a phone's gesture nav bar / home indicator */
   padding-bottom: max(0px, env(safe-area-inset-bottom));
 }
 
@@ -585,8 +783,8 @@ body {
   color: var(--text-plum);
   font-family: var(--font-display);
   font-size: 22px;
-  padding: 20px 14px;
-  min-height: 68px; /* generous thumb-sized hitbox, well above the 44-48px minimum */
+  padding: 18px 14px;
+  min-height: 64px;
   box-shadow: 0 4px 0 rgba(0,0,0,0.18);
   touch-action: none;
   -webkit-touch-callout: none;
@@ -602,19 +800,32 @@ body {
   flex: 1.4;
   background: var(--accent-coral);
   color: #fff;
-  font-size: 18px;
+  font-size: 16px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .hint {
   text-align: center;
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(255,255,255,0.35);
 }
 
+/* Roomier screens */
+@media (min-width: 640px) {
+  .app-layout { flex-direction: row; align-items: flex-start; }
+  .hud-panel {
+    flex-direction: column;
+    width: 140px;
+    flex: 0 0 140px;
+  }
+  .hud-next { flex-direction: row; justify-content: flex-start; gap: 10px; }
+  .powers-row { flex-direction: column; width: 140px; flex: 0 0 140px; }
+  .power-btn { flex: none; min-height: 44px; }
+}
+
 /* =====================================================================
-   MODALS — Game Over, Settings, Leaderboard all share this card look.
+   MODALS
    ===================================================================== */
 
 .modal-overlay {
@@ -631,61 +842,161 @@ body {
   z-index: 10;
 }
 
-.modal-overlay.visible {
-  opacity: 1;
-  pointer-events: auto;
-}
+.modal-overlay.visible { opacity: 1; pointer-events: auto; }
 
 .modal-card {
   background: var(--surface-cream);
   border-radius: 22px;
-  padding: 28px 26px;
+  padding: 24px 22px;
   width: 100%;
-  max-width: 320px;
+  max-width: 340px;
   text-align: center;
   box-shadow: 0 14px 0 rgba(0,0,0,0.22);
-  /* a quick pop-in when the modal appears, instead of just fading */
   transform: scale(0.9);
   animation: modalPopIn 240ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   position: relative;
   overflow: hidden;
 }
 
-@keyframes modalPopIn {
-  to { transform: scale(1); }
+.modal-card-tall {
+  max-height: 85vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.modal-card-gameover {
-  overflow: visible; /* the confetti canvas is allowed to peek slightly past the card edge */
+.modal-card-gameover { overflow: visible; }
+
+@keyframes modalPopIn { to { transform: scale(1); } }
+
+/* ---- Fruit Encyclopedia ---- */
+@keyframes enc-bounce {
+  0%, 100% { transform: translateY(0); }
+  45%       { transform: translateY(-5px); }
+}
+
+.enc-modal-card { max-width: 380px; }
+
+.enc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 12px 0;
+}
+
+.enc-section {
+  background: rgba(0,0,0,0.06);
+  border-radius: 14px;
+  padding: 12px 12px 10px;
+}
+
+.enc-locked {
+  opacity: 0.45;
+}
+
+.enc-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.enc-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.enc-desc {
+  font-size: 11px;
+  color: var(--text-muted, rgba(0,0,0,0.5));
+  line-height: 1.35;
+}
+
+.enc-unlock {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-coral-dark);
+}
+
+.enc-chain {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.enc-chain::-webkit-scrollbar { display: none; }
+
+.enc-tier {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+
+.enc-orb {
+  border-radius: 50%;
+  animation: enc-bounce 1.8s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.enc-tier-name {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-dark);
+  text-align: center;
+  white-space: nowrap;
+  max-width: 52px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.03em;
+}
+
+.enc-tier-pts {
+  font-size: 8px;
+  font-weight: 700;
+  color: #A0522D;
+  opacity: 0.8;
+}
+
+.enc-arrow {
+  font-size: 20px;
+  color: rgba(0,0,0,0.18);
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: -10px;
+}
+
+.enc-max-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #C17900;
+  white-space: nowrap;
+  margin-left: 2px;
+  align-self: center;
 }
 
 .confetti-canvas {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  width: 100%; height: 100%;
   pointer-events: none;
   z-index: 5;
 }
 
 .modal-card h2 {
   font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 24px;
   margin: 0 0 6px;
   color: var(--accent-coral-dark);
 }
 
-.modal-stat {
-  margin: 14px 0;
-}
-
-.modal-stat .hud-label {
-  display: block;
-}
-
-.modal-stat .hud-value {
-  font-size: 34px;
-}
+.modal-stat { margin: 10px 0; }
+.modal-stat .hud-label { display: block; }
+.modal-stat .hud-value { font-size: 32px; }
 
 .badge {
   display: inline-block;
@@ -701,28 +1012,70 @@ body {
 }
 
 .badge-celebrate {
-  font-size: 13px;
-  padding: 6px 14px;
+  font-size: 12px;
+  padding: 5px 12px;
   transform: scale(0);
   animation: badgeBounceIn 520ms cubic-bezier(0.34, 1.56, 0.64, 1) 280ms forwards;
 }
 
-@keyframes badgeBounceIn {
-  to { transform: scale(1); }
+@keyframes badgeBounceIn { to { transform: scale(1); } }
+
+/* ---- NEW RECORD banner ---- */
+.new-record-banner {
+  display: none; /* shown via JS */
+  width: 100%;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #1a1040;
+  background: linear-gradient(90deg, #FF6B35 0%, #FFC857 45%, #FF6B35 100%);
+  background-size: 200% auto;
+  border-radius: 14px;
+  padding: 11px 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 0 28px rgba(255,200,87,0.55), 0 4px 0 rgba(0,0,0,0.18);
+  transform-origin: center;
 }
 
-/* Shared "primary action" button used by Play Again / Done / Close —
-   includes a slow idle pulse so it reads as alive, not static. */
+.new-record-banner.is-active {
+  display: block;
+  animation: record-slide-in 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+             record-shimmer 2s linear 480ms infinite;
+}
+
+@keyframes record-slide-in {
+  from { transform: scale(0.6) translateY(-18px); opacity: 0; }
+  to   { transform: scale(1)   translateY(0);     opacity: 1; }
+}
+
+@keyframes record-shimmer {
+  to { background-position: 200% center; }
+}
+
+/* Gold glow on final-score when a new record is set */
+.hud-value-tally.is-record {
+  color: #FFC857;
+  text-shadow: 0 0 18px rgba(255,200,87,0.8);
+  animation: score-record-pulse 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes score-record-pulse {
+  0%   { transform: scale(1.5); }
+  100% { transform: scale(1);   }
+}
+
 .modal-primary-btn {
-  margin-top: 16px;
+  margin-top: 14px;
   width: 100%;
   border: none;
   border-radius: 14px;
   background: var(--accent-coral);
   color: #fff;
   font-family: var(--font-display);
-  font-size: 18px;
-  padding: 14px 0;
+  font-size: 17px;
+  padding: 13px 0;
   cursor: pointer;
   box-shadow: 0 4px 0 var(--accent-coral-dark);
   animation: ctaPulse 2.2s ease-in-out infinite;
@@ -736,7 +1089,7 @@ body {
 
 @keyframes ctaPulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.035); }
+  50%       { transform: scale(1.03); }
 }
 
 .modal-secondary-btn {
@@ -748,19 +1101,15 @@ body {
   color: var(--text-plum-soft);
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: 14px;
-  padding: 10px 0;
+  font-size: 13px;
+  padding: 9px 0;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
-/* Stacked pause-menu actions (Restart / Settings / Home) — solid, tappable
-   buttons rather than text links, since there are several of them and they
-   carry real navigational weight (unlike the single "Change Orchard" link
-   on the Game Over modal, which intentionally stays understated). */
 .modal-secondary-action-btn {
-  margin-top: 10px;
+  margin-top: 9px;
   width: 100%;
   border: none;
   border-radius: 14px;
@@ -768,8 +1117,8 @@ body {
   color: var(--text-plum);
   font-family: var(--font-body);
   font-weight: 700;
-  font-size: 15px;
-  padding: 13px 0;
+  font-size: 14px;
+  padding: 12px 0;
   cursor: pointer;
   transition: transform 80ms ease, background 80ms ease;
 }
@@ -786,34 +1135,21 @@ body {
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
-  margin: 16px 0;
+  margin: 14px 0;
   text-align: left;
 }
 
-.slider-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-plum-soft);
-}
+.slider-label { font-size: 13px; font-weight: 600; color: var(--text-plum-soft); }
 
-.volume-slider {
-  width: 100%;
-  height: 28px; /* generous touch target for the thumb on mobile */
-  accent-color: var(--accent-coral);
-}
+.volume-slider { width: 100%; height: 28px; accent-color: var(--accent-coral); }
 
 /* ---------- Leaderboard overlay ---------- */
 
-.leaderboard-subtitle {
-  font-size: 12px;
-  color: var(--text-plum-soft);
-  margin: 0 0 12px;
-}
+.leaderboard-subtitle { font-size: 12px; color: var(--text-plum-soft); margin: 0 0 12px; }
 
 .leaderboard-list {
   list-style: none;
-  margin: 0;
-  padding: 0;
+  margin: 0; padding: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -826,28 +1162,274 @@ body {
   align-items: center;
   background: rgba(0,0,0,0.04);
   border-radius: 10px;
-  padding: 10px 14px;
+  padding: 9px 14px;
   font-family: var(--font-display);
 }
 
-.leaderboard-row.is-top {
-  background: var(--accent-gold);
+.leaderboard-row.is-top { background: var(--accent-gold); }
+.lb-rank { font-size: 13px; color: var(--text-plum-soft); }
+.lb-score { font-size: 18px; font-weight: 700; color: var(--accent-coral-dark); }
+.leaderboard-empty { text-align: center; font-size: 13px; color: var(--text-plum-soft); padding: 16px 0; }
+
+/* ---------- Game Over — Rank ---------- */
+
+.rank-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 8px 0 4px;
 }
 
-.lb-rank {
-  font-size: 13px;
+.rank-emoji { font-size: 36px; }
+
+.rank-name {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent-gold);
+}
+
+.rank-next {
+  font-size: 11px;
+  color: var(--text-plum-soft);
+  margin-bottom: 8px;
+}
+
+/* ---------- Game Over — stats grid ---------- */
+
+.go-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+
+.go-stat {
+  background: rgba(0,0,0,0.04);
+  border-radius: 12px;
+  padding: 8px 10px;
+  margin: 0;
+}
+
+.go-stat .hud-value { font-size: 22px; }
+
+.session-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+
+.session-stat {
+  background: rgba(0,0,0,0.04);
+  border-radius: 10px;
+  padding: 7px 10px;
+  text-align: left;
+}
+
+.ss-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
   color: var(--text-plum-soft);
 }
 
-.lb-score {
+.ss-val {
+  display: block;
+  font-family: var(--font-display);
   font-size: 18px;
   font-weight: 700;
   color: var(--accent-coral-dark);
 }
 
-.leaderboard-empty {
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-plum-soft);
-  padding: 16px 0;
+/* ---------- Daily Missions ---------- */
+
+.mission-item {
+  background: rgba(0,0,0,0.04);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  text-align: left;
 }
+
+.mission-done { background: rgba(76, 175, 80, 0.12); }
+
+.mission-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.mission-desc {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-plum);
+}
+
+.mission-progress-txt {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-plum-soft);
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+.mission-bar-track {
+  width: 100%;
+  height: 7px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.mission-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-coral), var(--accent-gold));
+  transition: width 400ms ease;
+}
+
+.mission-reward {
+  font-size: 12px;
+  color: var(--text-plum-soft);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mission-claim-btn {
+  border: none;
+  border-radius: 999px;
+  background: var(--accent-coral);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  cursor: pointer;
+  animation: ctaPulse 2s ease-in-out infinite;
+}
+
+.mission-claimed {
+  color: #4CAF50;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+/* ---------- Achievements ---------- */
+
+.achievements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.achievement-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.04);
+}
+
+.achievement-done   { background: rgba(255, 200, 87, 0.15); }
+.achievement-locked { opacity: 0.55; }
+
+.ach-emoji { font-size: 26px; flex: 0 0 auto; }
+
+.ach-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-plum);
+}
+
+.ach-desc {
+  font-size: 11px;
+  color: var(--text-plum-soft);
+}
+
+/* ---------- Power Shop ---------- */
+
+.shop-coins-display {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: #C8860A;
+  margin-bottom: 12px;
+}
+
+.shop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0,0,0,0.04);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.shop-emoji { font-size: 28px; flex: 0 0 auto; }
+
+.shop-info { flex: 1; }
+
+.shop-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-plum);
+}
+
+.shop-count {
+  font-size: 12px;
+  color: var(--accent-coral-dark);
+  font-weight: 700;
+}
+
+.shop-desc { font-size: 11px; color: var(--text-plum-soft); margin-top: 2px; }
+
+.shop-buy-btn {
+  border: none;
+  border-radius: 10px;
+  background: var(--accent-gold);
+  color: #5a3d00;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+  transition: transform 80ms ease;
+}
+
+.shop-buy-btn:active { transform: translateY(2px); box-shadow: none; }
+.shop-btn-disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ---------- Shake animation (shared) ---------- */
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+
+.shake { animation: shake 320ms ease-in-out; }

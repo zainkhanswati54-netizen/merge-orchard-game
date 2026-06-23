@@ -1,6 +1,6 @@
 import { CONFIG } from './config.js';
 import { Game } from './game.js';
-import { initScreens, runLoadingSequence, showScreen } from './screens.js';
+import { initScreens, runLoadingSequence, showScreen, getChosenWeather } from './screens.js';
 import { getThemeById } from './themes.js';
 
 function setupCanvas(canvas) {
@@ -26,11 +26,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   function startGame(themeId) {
     const theme = getThemeById(themeId);
     showScreen('game');
+    // Resolve weather: 'auto' lets the theme decide, otherwise use the player's choice.
+    const pref = getChosenWeather();
+    const weatherOverride = (pref === 'auto') ? null : pref;
     if (!game) {
-      game = new Game(canvas, theme);
+      game = new Game(canvas, theme, weatherOverride);
       window.__game = game; // handy for console debugging
     } else {
-      game.restart(theme);
+      game.restart(theme, weatherOverride);
     }
   }
 

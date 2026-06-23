@@ -51,6 +51,19 @@ export class ParticleSystem {
     }
   }
 
+  // Tiny colour-matched wisp trailing behind a falling body. Called every
+  // frame while the body is in fast descent; particles drift upward so they
+  // look like a wake left in the air.
+  spawnTrail(x, y, color) {
+    for (let i = 0; i < 2; i++) {
+      const vx = randRange(-0.7, 0.7);
+      const vy = randRange(-1.8, -0.4);
+      const radius = randRange(1.0, 2.3);
+      const life   = randRange(130, 220);
+      this.particles.push(new Particle(x, y, vx, vy, radius, color, life));
+    }
+  }
+
   update(dtMs) {
     for (const p of this.particles) p.update(dtMs);
     this.particles = this.particles.filter((p) => !p.dead);
