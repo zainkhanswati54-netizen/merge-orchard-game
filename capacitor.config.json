@@ -1,9 +1,0 @@
-{
-  "appId": "com.mergeorchard.app",
-  "appName": "Merge Orchard",
-  "webDir": ".",
-  "bundledWebRuntime": false,
-  "android": {
-    "allowMixedContent": false
-  }
-}
