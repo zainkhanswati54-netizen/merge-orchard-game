@@ -1,0 +1,23 @@
+{
+  "name": "legend-of-the-lost-orchard",
+  "version": "1.0.0",
+  "description": "Legend of the Lost Orchard — Fruit merge game",
+  "main": "index.html",
+  "scripts": {
+    "sync": "npx cap sync android",
+    "open": "npx cap open android",
+    "build-apk": "npx cap sync android && npx cap open android"
+  },
+  "keywords": [
+    "game",
+    "capacitor",
+    "android"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1"
+  }
+}
