@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#1a4a0a"/>
+      <stop offset="100%" stop-color="#0a1a05"/>
+    </radialGradient>
+    <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD700" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#FFD700" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fruitGrad1" x1="20%" y1="20%" x2="80%" y2="80%">
+      <stop offset="0%" stop-color="#FF6B35"/>
+      <stop offset="100%" stop-color="#CC3300"/>
+    </linearGradient>
+    <linearGradient id="fruitGrad2" x1="20%" y1="20%" x2="80%" y2="80%">
+      <stop offset="0%" stop-color="#5cb800"/>
+      <stop offset="100%" stop-color="#2d6600"/>
+    </linearGradient>
+    <linearGradient id="fruitGrad3" x1="20%" y1="20%" x2="80%" y2="80%">
+      <stop offset="0%" stop-color="#FFB300"/>
+      <stop offset="100%" stop-color="#E65100"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="96" fill="url(#bgGrad)" stroke="#2d6600" stroke-width="2"/>
+  <circle cx="100" cy="100" r="96" fill="url(#glowGrad)"/>
+
+  <!-- Tree trunk -->
+  <rect x="93" y="118" width="14" height="38" rx="5" fill="#5D3A1A"/>
+  <rect x="90" y="148" width="20" height="10" rx="4" fill="#4a2e14"/>
+
+  <!-- Tree canopy layers -->
+  <ellipse cx="100" cy="110" rx="52" ry="42" fill="#1a5c0a" filter="url(#softGlow)"/>
+  <ellipse cx="100" cy="100" rx="46" ry="36" fill="#2d8c14"/>
+  <ellipse cx="100" cy="90" rx="38" ry="30" fill="#3aac1a"/>
+  <ellipse cx="100" cy="82" rx="28" ry="22" fill="#4dc820"/>
+
+  <!-- Fruits on tree -->
+  <!-- Large orange fruit -->
+  <circle cx="72" cy="102" r="13" fill="url(#fruitGrad3)" filter="url(#glow)"/>
+  <circle cx="69" cy="99" r="4" fill="rgba(255,255,255,0.25)"/>
+  <path d="M72 89 Q74 84 76 87" stroke="#2d6600" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+  <!-- Red apple fruit -->
+  <circle cx="128" cy="98" r="12" fill="url(#fruitGrad1)" filter="url(#glow)"/>
+  <circle cx="125" cy="95" r="3.5" fill="rgba(255,255,255,0.25)"/>
+  <path d="M128 86 Q130 81 132 84" stroke="#2d6600" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+  <!-- Green fruit top -->
+  <circle cx="100" cy="76" r="10" fill="url(#fruitGrad2)" filter="url(#glow)"/>
+  <circle cx="97" cy="73" r="3" fill="rgba(255,255,255,0.25)"/>
+
+  <!-- Small fruits -->
+  <circle cx="84" cy="118" r="7" fill="url(#fruitGrad1)" opacity="0.9"/>
+  <circle cx="116" cy="116" r="7" fill="url(#fruitGrad3)" opacity="0.9"/>
+
+  <!-- Golden sparkles -->
+  <g filter="url(#glow)" opacity="0.8">
+    <circle cx="55" cy="75" r="2.5" fill="#FFD700"/>
+    <circle cx="148" cy="70" r="2" fill="#FFD700"/>
+    <circle cx="60" cy="130" r="1.8" fill="#FFD700"/>
+    <circle cx="142" cy="125" r="2.2" fill="#FFD700"/>
+    <circle cx="100" cy="55" r="2" fill="#FFD700"/>
+  </g>
+
+  <!-- Outer ring decoration -->
+  <circle cx="100" cy="100" r="90" fill="none" stroke="#FFD700" stroke-width="1.5" stroke-dasharray="8 6" opacity="0.4"/>
+  <circle cx="100" cy="100" r="96" fill="none" stroke="#5C8A00" stroke-width="2" opacity="0.6"/>
+</svg>

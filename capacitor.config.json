@@ -1,0 +1,24 @@
+{
+  "appId": "com.legendorchard.game",
+  "appName": "Legend of the Lost Orchard",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#0D1B0E"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "launchAutoHide": true,
+      "backgroundColor": "#0D1B0E",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "Dark",
+      "backgroundColor": "#0D1B0E"
+    }
+  }
+}

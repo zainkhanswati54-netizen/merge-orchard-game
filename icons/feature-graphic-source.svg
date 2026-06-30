@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 500">
+  <defs>
+    <radialGradient id="bg" cx="30%" cy="20%" r="85%">
+      <stop offset="0%" stop-color="#241A3D"/>
+      <stop offset="65%" stop-color="#1B1530"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="500" fill="url(#bg)"/>
+
+  <!-- scattered fruit -->
+  <circle cx="120" cy="380" r="34" fill="#D7263D"/>
+  <circle cx="195" cy="410" r="22" fill="#FF4D6D"/>
+  <circle cx="250" cy="350" r="44" fill="#FF8C42"/>
+  <circle cx="330" cy="420" r="30" fill="#8BC34A"/>
+
+  <!-- hero watermelon -->
+  <circle cx="760" cy="260" r="150" fill="#2E8B57"/>
+  <circle cx="760" cy="260" r="150" fill="none" stroke="#1F6740" stroke-width="8"/>
+  <circle cx="700" cy="210" r="36" fill="#FF8C42"/>
+  <circle cx="820" cy="195" r="24" fill="#FF4D6D"/>
+  <circle cx="780" cy="300" r="18" fill="#D7263D"/>
+
+  <text x="60" y="170" font-family="Arial, sans-serif" font-size="76" font-weight="700" fill="#FFF1E6">Merge Orchard</text>
+  <text x="62" y="225" font-family="Arial, sans-serif" font-size="30" fill="#FFC857">Drop. Merge. Chase the high score.</text>
+</svg>

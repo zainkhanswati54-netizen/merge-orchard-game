@@ -1,0 +1,21 @@
+=================================================
+IMPORTANT: Download Matter.js Before Building APK
+=================================================
+
+The game needs Matter.js physics engine to work.
+It must be downloaded ONCE and saved locally.
+
+STEP 1: Open this link in your browser:
+https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js
+
+STEP 2: Press Ctrl+S to save the file
+
+STEP 3: Save it with this EXACT name and location:
+  legend-orchard-v5\legend-orchard-v5\www\matter.min.js
+
+STEP 4: The file should be around 600KB-700KB in size
+  (If it's only a few KB, it didn't download properly)
+
+STEP 5: Run BUILD_APK.bat to build the APK
+
+=================================================

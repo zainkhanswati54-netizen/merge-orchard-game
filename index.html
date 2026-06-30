@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0D1B0E" />
+  <meta name="format-detection" content="telephone=no" />
+  <!-- Capacitor: prevent text selection and context menus on mobile -->
+  <style>
+    * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; touch-action: manipulation; }
+    html { height: 100%; height: 100dvh; }
+    body { height: 100%; height: 100dvh; overflow: hidden; position: fixed; width: 100%; }
+  </style>
+<title>The Legend of the Lost Orchard</title>
+<meta name="description" content="Restore the Eternal Orchard. Drop fruit, merge matching tiers, awaken the Guardians, and defeat the Blight." />
+<meta name="theme-color" content="#0D1B0E" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Baloo+2:wght@600;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+<script>
+// Set theme immediately before render to prevent flash
+(function(){
+  try {
+    var t = localStorage.getItem('ui_theme') || 'dark-forest';
+    document.documentElement.setAttribute('data-ui-theme', t);
+  } catch(e) {}
+})();
+</script>
+</head>
+<body>
+
+<div id="game-container">
+
+<!-- ======================= LOADING SCREEN ======================= -->
+<div class="screen visible" id="loading-screen">
+  <div class="loading-logo-wrap">
+    <img src="assets/logo.svg" class="loading-logo-img" alt="Logo" />
+  </div>
+  <div class="brand-block">
+    <h1 class="brand-title story-title loading-big-title">The Legend of<br>the Lost Orchard</h1>
+    <p class="brand-tagline loading-tagline">Restore the Eternal Orchard. One merge at a time.</p>
+  </div>
+  <div class="loading-bar-track">
+    <div class="loading-bar-fill" id="loading-progress-bar"></div>
+  </div>
+  <div class="loading-meta">
+    <span id="loading-status">Awakening the orchard…</span>
+    <span id="loading-progress-pct">0%</span>
+  </div>
+</div>
+
+<!-- ======================= DAILY LOGIN REWARD ======================= -->
+<div class="modal-overlay" id="daily-login-overlay">
+  <div class="modal-card">
+    <div class="daily-login-header">
+      <h2>Daily Orchard Gift</h2>
+      <p class="daily-login-subtitle" id="daily-login-streak-text">Day 1 Reward</p>
+    </div>
+    <div class="daily-calendar" id="daily-calendar"><!-- 7 day icons --></div>
+    <div class="daily-reward-preview" id="daily-reward-preview">
+      <div class="daily-reward-big" id="daily-reward-coins">Coins: <span>50</span></div>
+      <div class="daily-reward-big" id="daily-reward-xp">XP: <span>100 XP</span></div>
+      <div class="daily-reward-bonus" id="daily-reward-bonus" style="display:none;"></div>
+    </div>
+    <button class="modal-primary-btn daily-claim-btn" id="daily-claim-btn">Claim Today's Gift!</button>
+  </div>
+</div>
+
+<!-- ======================= STORY INTRO SCREEN ======================= -->
+<div class="screen" id="story-screen">
+  <div class="story-container">
+    <div class="story-scroll" id="story-scroll">
+      <div class="story-page active" id="story-page-0">
+        <h2 class="story-heading">THE ETERNAL ORCHARD</h2>
+        <p class="story-text">Long ago, there was a magical orchard called the <strong>Eternal Orchard</strong>.</p>
+        <p class="story-text">It was the most beautiful orchard in the world — producing magical fruits whose life energy brought peace and prosperity to the entire kingdom.</p>
+      </div>
+      <div class="story-page" id="story-page-1">
+        <h2 class="story-heading">THE BLIGHT</h2>
+        <p class="story-text">But one day, a mysterious darkness known as <strong>The Blight</strong> spread across the land.</p>
+        <p class="story-text">Trees died. Fruit disappeared. Magic was lost.</p>
+        <p class="story-text">The Eternal Orchard was shattered into <strong>150 fragments</strong>. Its guardians vanished.</p>
+      </div>
+      <div class="story-page" id="story-page-2">
+        <h2 class="story-heading">THE CHOSEN ONE</h2>
+        <p class="story-text">You are the new <strong>Orchard Keeper</strong> — the last person chosen by the ancient Tree of Life.</p>
+        <p class="story-text">Your mission:<br>Restore the Eternal Orchard.<br>Awaken the Legendary Guardians.<br>Defeat the Blight.</p>
+        <p class="story-text">Bring life back to the world.</p>
+      </div>
+      <div class="story-page" id="story-page-3">
+        <h2 class="story-heading">YOUR POWER</h2>
+        <p class="story-text">Every merge you make generates <strong>Life Energy</strong>.</p>
+        <p class="story-text">Life Energy restores the orchard — fragment by fragment, guardian by guardian.</p>
+        <p class="story-text">You are not chasing points. You are saving the world.</p>
+      </div>
+    </div>
+    <div class="story-dots" id="story-dots">
+      <span class="story-dot active" data-page="0"></span>
+      <span class="story-dot" data-page="1"></span>
+      <span class="story-dot" data-page="2"></span>
+      <span class="story-dot" data-page="3"></span>
+    </div>
+    <div class="story-nav">
+      <button class="story-btn-prev" id="story-prev-btn" style="visibility:hidden;">← Back</button>
+      <button class="story-btn-next" id="story-next-btn">Next →</button>
+    </div>
+    <button class="story-skip-btn" id="story-skip-btn">Skip Story</button>
+  </div>
+</div>
+
+<!-- ======================= MAIN MENU ======================= -->
+<div class="screen" id="main-menu">
+
+  <!-- Floating fruit decoration — theme-aware, driven by CSS -->
+  <div class="menu-fruits-bg" aria-hidden="true">
+    <span class="menu-fruit mf-1">🍎</span>
+    <span class="menu-fruit mf-2">🍊</span>
+    <span class="menu-fruit mf-3">🍋</span>
+    <span class="menu-fruit mf-4">🍇</span>
+    <span class="menu-fruit mf-5">🍓</span>
+    <span class="menu-fruit mf-6">🍉</span>
+  </div>
+
+  <div class="brand-block">
+    <!-- Game Logo -->
+    <div class="menu-logo-wrap">
+      <img src="assets/logo.svg" class="menu-logo-img" alt="The Legend of the Lost Orchard" />
+    </div>
+    <h1 class="brand-title story-title">The Legend of<br>the Lost Orchard</h1>
+    <p class="brand-tagline">Restore the Eternal Orchard.</p>
+    <div id="total-coins-display" class="menu-coins-display">Coins: 0</div>
+    <div id="streak-display" class="menu-streak-display" style="display:none;"></div>
+
+    <!-- Orchard Restoration Progress Bar -->
+    <div class="orchard-restore-wrap" id="orchard-restore-wrap">
+      <div class="orchard-restore-label">
+        <span>Orchard Restored</span>
+        <span id="orchard-restore-pct">0%</span>
+      </div>
+      <div class="orchard-restore-track">
+        <div class="orchard-restore-fill" id="orchard-restore-fill"></div>
+      </div>
+      <div class="orchard-restore-zone" id="orchard-restore-zone">The Forgotten Field</div>
+    </div>
+
+    <!-- Chapter Progress Badge -->
+    <div class="chapter-badge" id="chapter-badge">
+      <span id="chapter-badge-text">Chapter 1 of 50</span>
+      <span class="chapter-badge-stars" id="chapter-badge-stars">★ 0/150</span>
+    </div>
+  </div>
+
+  <nav class="menu-actions">
+    <button class="menu-btn menu-btn-primary" id="menu-play-btn">▶ Play</button>
+
+    <!-- Daily gift indicator -->
+    <button class="menu-btn menu-btn-daily" id="menu-daily-btn">
+      Daily Gift
+      <span class="daily-ready-badge" id="daily-ready-badge" style="display:none;">!</span>
+    </button>
+
+    <div class="menu-row">
+      <button class="menu-btn menu-btn-half" id="menu-chapters-btn">
+        Chapters
+        <span class="chapter-count-badge" id="chapter-count-badge">1/50</span>
+      </button>
+      <button class="menu-btn menu-btn-half" id="menu-missions-btn">
+        Missions
+        <span class="missions-badge" id="missions-badge" style="display:none;">0</span>
+      </button>
+    </div>
+    <div class="menu-row">
+      <button class="menu-btn menu-btn-half" id="menu-achievements-btn">Achievements</button>
+      <button class="menu-btn menu-btn-half" id="menu-shop-btn">Shop</button>
+    </div>
+    <div class="menu-row">
+      <button class="menu-btn menu-btn-half" id="menu-leaderboard-btn">Scores</button>
+      <button class="menu-btn menu-btn-half" id="menu-weekly-btn">
+        Weekly
+        <span class="missions-badge" id="weekly-badge" style="display:none;">0</span>
+      </button>
+    </div>
+    <div class="menu-row">
+      <button class="menu-btn menu-btn-half" id="menu-bosses-btn">Guardians</button>
+      <button class="menu-btn menu-btn-half" id="menu-guide-btn">Fruit Guide</button>
+    </div>
+    <div class="menu-row">
+      <button class="menu-btn menu-btn-half" id="menu-skilltree-btn">Skill Tree</button>
+      <button class="menu-btn menu-btn-half" id="menu-settings-btn">Settings</button>
+    </div>
+  </nav>
+  <p class="menu-footer">Drag / arrow keys to aim · tap, click, or space to drop</p>
+</div>
+
+<!-- ======================= CHAPTER SELECT ======================= -->
+<div class="screen" id="chapter-select-screen">
+  <div class="chapter-select-header">
+    <button class="icon-back-btn" id="chapter-select-back-btn" aria-label="Back to menu">←</button>
+    <h1 class="chapter-select-title">Choose Chapter</h1>
+    <div class="chapter-total-stars" id="chapter-total-stars">★ 0</div>
+  </div>
+
+  <!-- Area tabs -->
+  <div class="area-tabs" id="area-tabs"></div>
+
+  <!-- Chapter grid -->
+  <div class="chapter-grid-wrap">
+    <div class="chapter-grid" id="chapter-grid"></div>
+  </div>
+</div>
+
+<!-- ======================= LEVEL SELECT (Orchard themes) ======================= -->
+<div class="screen" id="level-select-screen">
+  <div class="level-select-header">
+    <button class="icon-back-btn" id="level-select-back-btn" aria-label="Back to menu">←</button>
+    <h1 class="level-select-title">Choose Your Orchard</h1>
+  </div>
+  <div class="level-card-list" id="level-select-list"><!-- populated by screens.js --></div>
+</div>
+
+<!-- ======================= MISSION SELECT SCREEN ======================= -->
+<div class="screen" id="mission-select-screen">
+
+  <!-- Header -->
+  <div class="ms-header">
+    <button class="icon-back-btn" id="ms-back-btn">←</button>
+    <div class="ms-header-info">
+      <div class="ms-chapter-name" id="ms-chapter-name">Chapter 1</div>
+      <div class="ms-area-name" id="ms-area-name">The Forgotten Field</div>
+    </div>
+    <div class="ms-stars-badge" id="ms-stars-badge">⭐ 0/20</div>
+  </div>
+
+  <!-- XP Level bar -->
+  <div class="ms-level-bar">
+    <div class="ms-level-label">
+      <span class="ms-level-num" id="ms-level-num">Lv. 1</span>
+      <span class="ms-level-xp" id="ms-level-xp">0 / 200 XP</span>
+    </div>
+    <div class="ms-xp-track">
+      <div class="ms-xp-fill" id="ms-xp-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Mission progress summary -->
+  <div class="ms-progress-row">
+    <div class="ms-prog-card easy">
+      <span class="ms-prog-num" id="ms-easy-done">0</span>
+      <span class="ms-prog-label">Easy ✅</span>
+    </div>
+    <div class="ms-prog-card medium">
+      <span class="ms-prog-num" id="ms-med-done">0</span>
+      <span class="ms-prog-label">Medium 🔶</span>
+    </div>
+    <div class="ms-prog-card hard">
+      <span class="ms-prog-num" id="ms-hard-done">0</span>
+      <span class="ms-prog-label">Hard 🔥</span>
+    </div>
+    <div class="ms-prog-card total">
+      <span class="ms-prog-num" id="ms-total-done">0/20</span>
+      <span class="ms-prog-label">Total</span>
+    </div>
+  </div>
+
+  <!-- Mission list -->
+  <div class="ms-mission-list" id="ms-mission-list">
+    <!-- populated by JS -->
+  </div>
+
+  <!-- Play button (with selected mission) -->
+  <div class="ms-play-footer">
+    <div class="ms-selected-info" id="ms-selected-info">Tap a mission to select</div>
+    <button class="ms-play-btn" id="ms-play-btn" disabled>▶ Play Selected Mission</button>
+    <button class="ms-freeplay-btn" id="ms-freeplay-btn">🎮 Free Play (no mission)</button>
+  </div>
+
+</div>
+
+<!-- ======================= GAME SCREEN ======================= -->
+<div class="screen" id="game-screen">
+
+  <!-- MISSION GUIDE POPUP — shows on mission start -->
+  <div class="mission-guide-overlay" id="mission-guide-overlay" style="display:none;">
+    <div class="mission-guide-card">
+      <div class="mg-top">
+        <span class="mg-icon" id="mg-icon">🌸</span>
+        <div class="mg-badge">Mission <span id="mg-num">1</span>/20</div>
+      </div>
+      <div class="mg-title" id="mg-title">Orchard Bloom</div>
+      <div class="mg-goal-label">YOUR GOAL</div>
+      <div class="mg-goal" id="mg-goal">Score 240 points</div>
+      <div class="mg-tips" id="mg-tips"></div>
+      <div class="mg-rewards">
+        <span class="mg-reward-pill" id="mg-xp">✨ +92 XP</span>
+        <span class="mg-reward-pill" id="mg-coins">🪙 +34</span>
+      </div>
+      <button class="mg-start-btn" id="mg-start-btn">🎮 Let's Go!</button>
+    </div>
+  </div>
+
+  <!-- IN-GAME MISSION REMINDER — always visible top bar -->
+  <div class="ingame-mission-bar" id="ingame-mission-bar" style="display:none;">
+    <span class="imb-icon" id="imb-icon">🌸</span>
+    <div class="imb-info">
+      <span class="imb-label" id="imb-label">Score 240 pts</span>
+      <div class="imb-prog-track">
+        <div class="imb-prog-fill" id="imb-prog-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <span class="imb-pct" id="imb-pct">0%</span>
+  </div>
+  <div class="app-layout">
+
+    <!-- LEFT SIDEBAR: HUD + Chapter Info + XP + Fear -->
+    <div class="hud-panel">
+      <button class="hud-icon-btn" id="hud-pause-btn" aria-label="Pause">⏸</button>
+
+      <!-- Chapter info -->
+      <div class="chapter-info-bar" id="chapter-info-bar">
+        <span class="chapter-info-num" id="chapter-info-num">Ch.1</span>
+        <span class="chapter-info-name" id="chapter-info-name">The Forgotten Field</span>
+        <span class="chapter-modifier-badge" id="chapter-modifier-badge" style="display:none;">Clear</span>
+        <span class="chapter-star-mini" id="chapter-star-mini">☆☆☆</span>
+      </div>
+
+      <!-- XP / Life Energy bar -->
+      <div class="xp-bar-wrap" id="xp-bar-wrap">
+        <div class="xp-bar-labels">
+          <span id="xp-level-label">Lv 1</span>
+          <span id="xp-fraction-label">0 / 100 XP</span>
+        </div>
+        <div class="xp-bar-track">
+          <div class="xp-bar-fill" id="xp-bar-fill"></div>
+        </div>
+      </div>
+
+      <!-- Score -->
+      <div class="hud-card">
+        <div class="hud-label">Score</div>
+        <div class="hud-value" id="score-value">0</div>
+      </div>
+
+      <!-- Stars -->
+      <div class="hud-card hud-star-targets" id="hud-star-targets">
+        <div class="hud-label">Stars</div>
+        <div class="star-target-row" id="star-target-row">
+          <span class="star-pip" id="star-1">☆</span>
+          <span class="star-pip" id="star-2">☆</span>
+          <span class="star-pip" id="star-3">☆</span>
+        </div>
+        <div class="star-next-target" id="star-next-target"></div>
+      </div>
+
+      <!-- Next fruit -->
+      <div class="hud-card hud-next">
+        <div class="hud-label">Next</div>
+        <div class="next-swatch" id="next-swatch"></div>
+        <div class="next-name" id="next-name"></div>
+      </div>
+
+      <!-- Best -->
+      <div class="hud-card">
+        <div class="hud-label">Best</div>
+        <div class="hud-value" id="highscore-value">0</div>
+      </div>
+
+      <!-- Coins -->
+      <div class="hud-card hud-coins-card">
+        <div class="hud-label">Coins</div>
+        <div class="hud-value hud-coins" id="hud-coins-value">0</div>
+      </div>
+
+      <!-- FEAR METERS -->
+      <div class="fear-meters" id="fear-meters" style="display:none;">
+
+        <div class="fear-meter" id="fear-corruption" style="display:none;">
+          <span class="fear-label">CORRUPTION</span>
+          <div class="fear-bar-track">
+            <div class="fear-bar-fill fear-fill-corruption" id="fear-fill-corruption"></div>
+          </div>
+        </div>
+        <div class="fear-meter" id="fear-darkness" style="display:none;">
+          <span class="fear-label">DARKNESS</span>
+          <div class="fear-bar-track">
+            <div class="fear-bar-fill fear-fill-darkness" id="fear-fill-darkness"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CHAPTER INFO POPUP — shown when Ch.1 is tapped -->
+    <div class="chapter-popup" id="chapter-popup" style="display:none;">
+      <div class="chapter-popup-header">
+        <span id="cp-title">Chapter 1</span>
+        <button class="chapter-popup-close" id="chapter-popup-close">✕</button>
+      </div>
+      <div class="chapter-popup-area" id="cp-area">The Forgotten Field</div>
+      <div class="chapter-popup-stars" id="cp-stars">
+        <span class="cp-star" id="cp-star-1">☆</span>
+        <span class="cp-star" id="cp-star-2">☆</span>
+        <span class="cp-star" id="cp-star-3">☆</span>
+      </div>
+      <div class="chapter-popup-targets" id="cp-targets">
+        <div>⭐ <span id="cp-t1">-</span></div>
+        <div>⭐⭐ <span id="cp-t2">-</span></div>
+        <div>⭐⭐⭐ <span id="cp-t3">-</span></div>
+      </div>
+      <div class="chapter-popup-section-title">🎯 Daily Missions</div>
+      <div class="chapter-popup-missions" id="cp-missions"></div>
+      <div class="chapter-popup-section-title">💰 Rewards</div>
+      <div class="chapter-popup-rewards" id="cp-rewards"></div>
+    </div>
+
+    <!-- CENTER: Canvas + Controls -->
+    <div class="play-column">
+      <div class="stage">
+        <canvas id="game-canvas" aria-label="The Legend of the Lost Orchard play field"></canvas>
+        <div class="danger-indicator" id="danger-indicator"></div>
+        <div class="danger-vignette" id="danger-vignette" aria-hidden="true"></div>
+        <!-- Mystery Box overlay -->
+        <div class="mystery-box-overlay" id="mystery-box-overlay" style="display:none;">
+          <div class="mystery-box-inner">
+            <span class="mystery-box-label">Mystery Box!</span>
+            <button class="mystery-box-open-btn" id="mystery-box-open-btn">Open!</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls removed: tap canvas to drop, drag to aim, swipe down to drop -->
+    </div>
+
+    <!-- RIGHT SIDEBAR: Powers + Evolution -->
+    <div class="powers-row" id="power-buttons"></div>
+
+  </div>
+</div>
+
+<!-- ======================= PHOENIX SAVE OVERLAY ======================= -->
+<!-- A full, must-acknowledge overlay for the one-time-ever Phoenix Guardian
+     save. This exists specifically so the moment is unmistakable — never
+     just a fading bit of canvas text that's easy to miss mid-panic, and
+     never confusable with a silent restart. -->
+<div class="modal-overlay" id="phoenix-save-overlay">
+  <div class="modal-card phoenix-save-card">
+    <h2>The Phoenix Guardian Saved You!</h2>
+    <p class="phoenix-save-desc">
+      This is a <strong>once-in-your-entire-journey</strong> save. It will never trigger again —
+      from here on, if you reach the line, it's game over for real.
+    </p>
+    <button class="modal-primary-btn" id="phoenix-save-continue-btn">Continue Playing</button>
+  </div>
+</div>
+
+<!-- ======================= PAUSE MENU OVERLAY ======================= -->
+<div class="modal-overlay" id="pause-overlay">
+  <div class="modal-card">
+    <h2>Paused</h2>
+    <p class="pause-chapter-label" id="pause-chapter-label"></p>
+    <button class="modal-primary-btn" id="pause-resume-btn">▶ Resume</button>
+    <button class="modal-secondary-action-btn" id="pause-restart-btn">↻ Restart Chapter</button>
+    <button class="modal-secondary-action-btn" id="pause-settings-btn">Settings</button>
+    <button class="modal-secondary-action-btn" id="pause-home-btn">Go to Home</button>
+  </div>
+</div>
+
+<!-- ======================= SETTINGS OVERLAY ======================= -->
+<div class="modal-overlay" id="settings-overlay">
+  <div class="modal-card modal-card-tall">
+    <h2>⚙️ Settings</h2>
+
+    <div class="settings-section-title">🔊 Audio</div>
+    <label class="slider-row">
+      <span class="slider-label">Sound Effects</span>
+      <input type="range" min="0" max="100" value="80" id="sfx-volume-slider" class="volume-slider" />
+    </label>
+    <label class="slider-row">
+      <span class="slider-label">Music Volume</span>
+      <input type="range" min="0" max="100" value="35" id="music-volume-slider" class="volume-slider" />
+    </label>
+
+    <div class="settings-section-title">🎨 UI Theme</div>
+    <div class="settings-theme-grid" id="ui-theme-grid">
+      <button class="ui-theme-btn active" data-theme="dark-forest">🌲<br><span>Dark Forest</span></button>
+      <button class="ui-theme-btn" data-theme="golden-dawn">🌅<br><span>Golden Dawn</span></button>
+      <button class="ui-theme-btn" data-theme="ocean-deep">🌊<br><span>Ocean Deep</span></button>
+      <button class="ui-theme-btn" data-theme="neon-glow">⚡<br><span>Neon Glow</span></button>
+    </div>
+
+    <div class="settings-divider"></div>
+    <div class="settings-section-title">⚠️ Danger Zone</div>
+    <button class="modal-danger-btn" id="reset-game-btn">Reset All Progress</button>
+    <p class="reset-warning-text">This will delete all coins, XP, chapters, missions and scores permanently.</p>
+    <button class="modal-primary-btn" id="settings-close-btn">Done</button>
+  </div>
+</div>
+
+<!-- ======================= LEADERBOARD OVERLAY ======================= -->
+<div class="modal-overlay" id="leaderboard-overlay">
+  <div class="modal-card">
+    <h2>Leaderboard</h2>
+    <p class="leaderboard-subtitle">Your best runs on this device</p>
+    <ul class="leaderboard-list" id="leaderboard-list"></ul>
+    <button class="modal-primary-btn" id="leaderboard-close-btn">Close</button>
+  </div>
+</div>
+
+<!-- ======================= DAILY MISSIONS OVERLAY ======================= -->
+<div class="modal-overlay" id="missions-overlay">
+  <div class="modal-card modal-card-tall">
+    <h2>Daily Missions</h2>
+    <p class="leaderboard-subtitle">Resets at midnight · Claim rewards below</p>
+    <div id="missions-list"></div>
+    <!-- Orchard Tasks -->
+    <h3 class="modal-section-title">Orchard Tasks</h3>
+    <div id="orchard-tasks-list"></div>
+    <button class="modal-primary-btn" id="missions-close-btn">Close</button>
+  </div>
+</div>
+
+<!-- ======================= ACHIEVEMENTS OVERLAY ======================= -->
+<div class="modal-overlay" id="achievements-overlay">
+  <div class="modal-card modal-card-tall">
+    <h2>Achievements</h2>
+    <p class="leaderboard-subtitle">Unlock by playing!</p>
+    <div id="achievements-list" class="achievements-list"></div>
+    <button class="modal-primary-btn" id="achievements-close-btn">Close</button>
+  </div>
+</div>
+
+<!-- ======================= POWER SHOP OVERLAY ======================= -->
+<div class="modal-overlay" id="shop-overlay">
+  <div class="modal-card modal-card-tall">
+    <h2>Power Shop</h2>
+    <p class="leaderboard-subtitle">Spend coins to buy powers</p>
+    <div id="shop-coins-display" class="shop-coins-display">Coins: 0</div>
+    <div id="shop-list" class="shop-list"></div>
+    <button class="modal-primary-btn" id="shop-close-btn">Done</button>
+  </div>
+</div>
+
+<!-- ======================= GAME OVER / CHAPTER COMPLETE MODAL ======================= -->
+<div class="modal-overlay" id="game-over">
+  <div class="modal-card modal-card-gameover">
+    <canvas class="confetti-canvas" id="gameover-confetti" aria-hidden="true"></canvas>
+
+    <h2 id="gameover-title">The Orchard Rests</h2>
+
+    <!-- Star rating (chapter complete) -->
+    <div class="chapter-stars-display" id="chapter-stars-display" style="display:none;">
+      <span class="big-star" id="big-star-1">☆</span>
+      <span class="big-star" id="big-star-2">☆</span>
+      <span class="big-star" id="big-star-3">☆</span>
+    </div>
+
+    <!-- NEW RECORD banner -->
+    <div id="new-record-banner" class="new-record-banner" aria-live="polite"></div>
+
+    <!-- Rank display -->
+    <div class="rank-display">
+      <span class="rank-name" id="go-rank-name">Bronze</span>
+    </div>
+    <div class="rank-next" id="go-next-rank"></div>
+
+    <!-- Score stats -->
+    <div class="go-stats-grid">
+      <div class="modal-stat go-stat">
+        <span class="hud-label">Life Energy</span>
+        <span class="hud-value hud-value-tally" id="final-score">0</span>
+      </div>
+      <div class="modal-stat go-stat">
+        <span class="hud-label">Personal Best</span>
+        <span class="hud-value" id="final-highscore">0</span>
+        <div><span class="badge badge-celebrate" id="new-high-badge" style="display:none;">New Best!</span></div>
+      </div>
+    </div>
+
+    <!-- Session stats -->
+    <div class="session-stats">
+      <div class="session-stat">
+        <span class="ss-label">Merges</span>
+        <span class="ss-val" id="go-merges">0</span>
+      </div>
+      <div class="session-stat">
+        <span class="ss-label">Best Combo</span>
+        <span class="ss-val" id="go-combo">x0</span>
+      </div>
+      <div class="session-stat">
+        <span class="ss-label">Coins</span>
+        <span class="ss-val" id="go-coins">0</span>
+      </div>
+      <div class="session-stat">
+        <span class="ss-label">XP</span>
+        <span class="ss-val" id="go-xp">0</span>
+      </div>
+    </div>
+
+    <!-- Chapter reward (if chapter complete) -->
+    <div class="chapter-reward-block" id="chapter-reward-block" style="display:none;">
+      <div class="chapter-reward-title">Chapter Reward</div>
+      <div class="chapter-reward-row">
+        <span id="chapter-reward-coins">+0 Coins</span>
+        <span id="chapter-reward-xp">+0 XP</span>
+      </div>
+    </div>
+
+    <!-- Orchard restoration message -->
+    <div class="go-restore-msg" id="go-restore-msg"></div>
+
+    <button class="modal-primary-btn" id="restart-btn">▶ Play Again</button>
+    <button class="modal-secondary-btn" id="game-over-next-chapter-btn" style="display:none;">Next Chapter →</button>
+    <button class="modal-secondary-btn" id="game-over-home-btn">Go to Home</button>
+  </div>
+</div>
+
+<!-- ======================= MYSTERY BOX RESULT MODAL ======================= -->
+<div class="modal-overlay" id="mystery-result-overlay">
+  <div class="modal-card mystery-result-card">
+    <h2>Mystery Box!</h2>
+    <div class="mystery-result-reward" id="mystery-result-reward">You found something!</div>
+    <button class="modal-primary-btn" id="mystery-result-close">Awesome!</button>
+  </div>
+</div>
+
+<!-- ======================= WEEKLY MISSIONS OVERLAY ======================= -->
+<div class="modal-overlay" id="weekly-overlay">
+  <div class="modal-card modal-card-tall">
+    <h2>Weekly Missions</h2>
+    <p class="leaderboard-subtitle" id="weekly-time-remaining">Resets in …</p>
+    <div id="weekly-list" class="missions-list"></div>
+    <button class="modal-primary-btn" id="weekly-close-btn">Close</button>
+  </div>
+</div>
+
+<!-- ======================= SKILL TREE OVERLAY ======================= -->
+<div class="modal-overlay" id="skilltree-overlay">
+  <div class="modal-card modal-card-tall">
+    <h2>Skill Tree</h2>
+    <p class="leaderboard-subtitle" id="skilltree-level-label">Level 1</p>
+    <div id="skilltree-list" class="enc-list"></div>
+    <button class="modal-primary-btn" id="skilltree-close-btn">Close</button>
+  </div>
+</div>
+
+<!-- ======================= GUARDIANS OVERLAY ======================= -->
+<div class="modal-overlay" id="bosses-overlay">
+  <div class="modal-card modal-card-tall">
+    <h2>Legendary Guardians</h2>
+    <p class="leaderboard-subtitle">Awaken them through special merges. Each one restores a piece of the orchard.</p>
+    <div id="bosses-list" class="enc-list"></div>
+    <button class="modal-primary-btn" id="bosses-close-btn">Close</button>
+  </div>
+</div>
+
+<!-- ======================= FRUIT ENCYCLOPEDIA OVERLAY ======================= -->
+<div class="modal-overlay" id="encyclopedia-overlay">
+  <div class="modal-card modal-card-tall enc-modal-card">
+    <h2>Fruit Guide</h2>
+    <p class="leaderboard-subtitle">Every orchard · every tier · merge chains</p>
+    <div id="encyclopedia-list" class="enc-list"></div>
+    <button class="modal-primary-btn" id="encyclopedia-close-btn">Close</button>
+  </div>
+</div>
+
+</div><!-- end #game-container -->
+
+<script src="matter.min.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

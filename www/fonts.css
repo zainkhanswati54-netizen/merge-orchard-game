@@ -1,0 +1,30 @@
+/* Offline font definitions for APK */
+/* Using system fonts that look similar to Cinzel, Baloo 2, Inter */
+
+/* Cinzel replacement - serif display font */
+@font-face {
+  font-family: 'Cinzel';
+  src: local('Georgia'), local('Times New Roman'), local('serif');
+  font-weight: 600 900;
+}
+
+/* Baloo 2 replacement - rounded UI font */  
+@font-face {
+  font-family: 'Baloo 2';
+  src: local('Trebuchet MS'), local('Arial Rounded MT Bold'), local('sans-serif');
+  font-weight: 600 800;
+}
+
+/* Inter replacement - clean body font */
+@font-face {
+  font-family: 'Inter';
+  src: local('Arial'), local('Helvetica Neue'), local('sans-serif');
+  font-weight: 400 700;
+}
+
+/* CSS variables for font families */
+:root {
+  --font-display: 'Cinzel', Georgia, 'Times New Roman', serif;
+  --font-ui: 'Baloo 2', 'Trebuchet MS', Arial, sans-serif;
+  --font-body: 'Inter', Arial, 'Helvetica Neue', sans-serif;
+}
