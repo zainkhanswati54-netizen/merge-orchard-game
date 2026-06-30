@@ -1,30 +1,44 @@
-/* Offline font definitions for APK */
-/* Using system fonts that look similar to Cinzel, Baloo 2, Inter */
+/* Offline font definitions — APK / Android WebView safe.
+   No @font-face with local() — Android WebView doesn't have
+   Georgia/Times New Roman, which caused text to render invisible.
+   Using direct CSS font-family fallback stacks instead. */
 
-/* Cinzel replacement - serif display font */
-@font-face {
-  font-family: 'Cinzel';
-  src: local('Georgia'), local('Times New Roman'), local('serif');
-  font-weight: 600 900;
-}
-
-/* Baloo 2 replacement - rounded UI font */  
-@font-face {
-  font-family: 'Baloo 2';
-  src: local('Trebuchet MS'), local('Arial Rounded MT Bold'), local('sans-serif');
-  font-weight: 600 800;
-}
-
-/* Inter replacement - clean body font */
-@font-face {
-  font-family: 'Inter';
-  src: local('Arial'), local('Helvetica Neue'), local('sans-serif');
-  font-weight: 400 700;
-}
-
-/* CSS variables for font families */
 :root {
-  --font-display: 'Cinzel', Georgia, 'Times New Roman', serif;
-  --font-ui: 'Baloo 2', 'Trebuchet MS', Arial, sans-serif;
-  --font-body: 'Inter', Arial, 'Helvetica Neue', sans-serif;
+  --font-display: Georgia, 'Noto Serif', 'Droid Serif', serif;
+  --font-ui: 'Roboto', 'Noto Sans', Arial, sans-serif;
+  --font-body: 'Roboto', 'Noto Sans', Arial, sans-serif;
+}
+
+/* Map the original font-family names used throughout style.css
+   directly to safe system fonts available on Android. */
+.brand-title, .story-title, .rank-name, .gameover-title,
+#gameover-title, .chapter-select-title, .level-select-title,
+.modal-card > h2, .ms-current-label, .ms-all-done-title,
+.mn-title, .mission-toast-title, .mg-title {
+  font-family: var(--font-display) !important;
+}
+
+.hud-label, .hud-value, .menu-btn, .power-name, .power-count,
+.ss-label, .ss-val, .settings-section-title, .chapter-popup-header,
+.cp-mission-label, .slider-label, .area-tab, .orchard-restore-label,
+.chapter-badge, .ms-level-num, .ms-chapter-name, .ms-mission-label,
+.imb-label, .mg-goal {
+  font-family: var(--font-ui) !important;
+}
+
+body, .brand-tagline, .loading-tagline, .rank-next, .go-restore-msg,
+.reset-warning-text, .menu-footer, .chapter-popup-area,
+.mission-mini-desc, .cp-mission-progress, .ms-area-name,
+.ms-mission-desc, .mg-tip {
+  font-family: var(--font-body) !important;
+}
+
+/* GLOBAL SAFETY NET — catch any remaining 'Cinzel'/'Baloo 2'/'Inter'
+   references in style.css that aren't covered by the class list above.
+   This makes EVERY element fall back to safe system fonts. */
+* {
+  font-family: 'Roboto', 'Noto Sans', Arial, sans-serif;
+}
+h1, h2, h3, .brand-title, .story-title, .modal-card h2 {
+  font-family: Georgia, 'Noto Serif', serif;
 }
